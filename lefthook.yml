@@ -1,0 +1,10 @@
+# Optional. Use when generated with --hooks lefthook.
+pre-commit:
+  commands:
+    guardrails:
+      run: node tools/guardrails/check.mjs ai
+
+pre-push:
+  commands:
+    guardrails:
+      run: node tools/guardrails/check.mjs all
