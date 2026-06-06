@@ -198,16 +198,51 @@ async function checkDocs() {
 async function checkSecurity() {
   const errors = [];
   const suspicious = listFiles(".", f => {
-    const normalized = f.replaceAll("\\\\", "/");
+    const normalized = f.replaceAll("\\", "/");
     return normalized.endsWith("/.env") || normalized.includes("/secrets/") || normalized.endsWith("id_rsa");
   });
   for (const file of suspicious) errors.push(`Sensitive-looking file detected: ${file}`);
+
+  const duplicateGuardrailScripts = listFiles(".", f => {
+    const normalized = f.replaceAll("\\", "/").toLowerCase();
+    return (normalized.endsWith(".sh") || normalized.endsWith(".ps1")) &&
+      (normalized.includes("guardrail") || normalized.includes("check"));
+  });
+  for (const file of duplicateGuardrailScripts) {
+    errors.push(`Do not duplicate guardrail check logic in shell scripts: ${file}`);
+  }
+
   return errors.length ? fail("security", errors) : pass("security");
 }
 
 async function checkDotnetAvailable() {
   const code = await runCommand("dotnet", ["--version"]);
   return code === 0 ? pass("dotnet available") : fail("dotnet available", ["dotnet CLI is not available."]);
+}
+
+async function checkCiWorkflows() {
+  const required = [
+    ".github/workflows/ci.yml",
+    ".github/workflows/docs.yml",
+    ".github/workflows/security.yml",
+    ".github/workflows/specs.yml",
+    ".github/workflows/guardrails.yml"
+  ];
+
+  const errors = required
+    .filter(file => !existsSync(join(root, file)))
+    .map(file => `${file} is missing.`);
+
+  if (existsSync(join(root, ".github/workflows/ci.yml"))) {
+    const ci = read(".github/workflows/ci.yml");
+    for (const command of ["npm run check", "npm run template:smoke"]) {
+      if (!ci.includes(command)) {
+        errors.push(`.github/workflows/ci.yml must run ${command}.`);
+      }
+    }
+  }
+
+  return errors.length ? fail("ci workflows", errors) : pass("ci workflows");
 }
 
 async function checkTemplateSmoke() {
@@ -376,7 +411,7 @@ const groups = {
   security: [checkSecurity],
   dotnet: [checkDotnetAvailable],
   "template-smoke": [checkTemplateSmoke],
-  all: [checkAi, checkOpenQuestions, checkSkills, checkWorkflows, checkDocs, checkSpecs, checkModuleManifestTemplate, checkSecurity]
+  all: [checkAi, checkOpenQuestions, checkSkills, checkWorkflows, checkDocs, checkSpecs, checkModuleManifestTemplate, checkCiWorkflows, checkSecurity]
 };
 
 const selected = groups[target];
