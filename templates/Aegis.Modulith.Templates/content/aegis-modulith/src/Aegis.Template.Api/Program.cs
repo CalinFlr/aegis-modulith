@@ -1,5 +1,7 @@
 using Aegis.Template.BuildingBlocks.Cqrs;
 using Aegis.Template.Modules;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 #if AEGIS_PRO_OR_ADVANCED
 using Aegis.Template.Api.Pro;
@@ -15,6 +17,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics.AddAspNetCoreInstrumentation())
+    .WithTracing(tracing => tracing.AddAspNetCoreInstrumentation());
 builder.Services.AddAegisDispatching(typeof(ModulesAssemblyMarker).Assembly);
 builder.Services.AddAegisModules(builder.Configuration);
 
