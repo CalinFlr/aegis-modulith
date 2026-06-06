@@ -1,0 +1,16 @@
+{
+  "name": "Audit",
+  "schema": "audit",
+  "type": "business-module",
+  "owner": "taskhub",
+  "dependencies": [],
+  "publicContracts": [],
+  "features": [
+    "RecordAuditEntry",
+    "ListAuditEntries"
+  ],
+  "rules": {
+    "allowCrossModuleDatabaseAccess": false,
+    "allowInfrastructureReferences": false
+  }
+}

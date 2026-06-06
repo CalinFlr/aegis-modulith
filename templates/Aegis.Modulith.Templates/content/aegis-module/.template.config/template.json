@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Aegis.Modulith contributors",
+  "classifications": [
+    "Aegis.Modulith",
+    "Module"
+  ],
+  "identity": "Aegis.Modulith.Templates.Module",
+  "name": "Aegis business module",
+  "shortName": "aegis-module",
+  "sourceName": "Aegis.Module",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "item"
+  },
+  "symbols": {
+    "schema": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "module_schema",
+      "replaces": "aegis_module_schema",
+      "description": "Database schema owned by the module."
+    },
+    "owner": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "core",
+      "replaces": "aegis_module_owner",
+      "description": "Module owner."
+    }
+  }
+}

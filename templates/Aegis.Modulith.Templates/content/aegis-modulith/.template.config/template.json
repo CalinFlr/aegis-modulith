@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Aegis.Modulith contributors",
+  "classifications": [
+    "Web",
+    "API",
+    "Modular Monolith",
+    "CQRS"
+  ],
+  "identity": "Aegis.Modulith.Templates.Modulith",
+  "name": "Aegis.Modulith API",
+  "shortName": "aegis-modulith",
+  "sourceName": "Aegis.Template",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "symbols": {
+    "profile": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "pro",
+      "replaces": "AegisProfileValue",
+      "description": "Generated profile.",
+      "choices": [
+        { "choice": "core", "description": "Minimal production-minded API foundation." },
+        { "choice": "pro", "description": "Recommended default with Aspire-ready and operational scaffolding." },
+        { "choice": "advanced", "description": "Enterprise scaffolding with tenancy and permission placeholders." }
+      ]
+    },
+    "mediator": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "core",
+      "replaces": "AegisMediatorValue",
+      "description": "Dispatch implementation.",
+      "choices": [
+        { "choice": "core", "description": "Lightweight built-in dispatcher." },
+        { "choice": "mediatr", "description": "Optional MediatR adapter path." }
+      ]
+    },
+    "database": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "postgres",
+      "replaces": "AegisDatabaseValue",
+      "description": "Database provider.",
+      "choices": [
+        { "choice": "postgres", "description": "PostgreSQL." }
+      ]
+    },
+    "sample": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "none",
+      "replaces": "AegisSampleValue",
+      "description": "Reference sample.",
+      "choices": [
+        { "choice": "none", "description": "Generate starter modules." },
+        { "choice": "taskhub", "description": "Generate TaskHub sample modules." }
+      ]
+    },
+    "ai": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "enterprise",
+      "replaces": "AegisAiValue",
+      "choices": [
+        { "choice": "none", "description": "No AI assets." },
+        { "choice": "agents", "description": "Agent instructions only." },
+        { "choice": "enterprise", "description": "Agent instructions and enterprise guardrails." }
+      ]
+    },
+    "guardrails": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "standard",
+      "replaces": "AegisGuardrailsValue",
+      "choices": [
+        { "choice": "off", "description": "No generated guardrail runner." },
+        { "choice": "standard", "description": "Standard guardrail checks." },
+        { "choice": "strict", "description": "Strict enterprise guardrail stance." }
+      ]
+    },
+    "hooks": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "none",
+      "replaces": "AegisHooksValue",
+      "choices": [
+        { "choice": "none", "description": "No hooks." },
+        { "choice": "lefthook", "description": "Generate Lefthook config." }
+      ]
+    },
+    "skills": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "enterprise",
+      "replaces": "AegisSkillsValue",
+      "choices": [
+        { "choice": "none", "description": "No generated skills." },
+        { "choice": "core", "description": "Core skills." },
+        { "choice": "enterprise", "description": "Enterprise skills." }
+      ]
+    },
+    "docs": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "full",
+      "replaces": "AegisDocsValue",
+      "choices": [
+        { "choice": "standard", "description": "Standard docs." },
+        { "choice": "full", "description": "Full docs." }
+      ]
+    },
+    "license": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "apache2",
+      "replaces": "AegisLicenseValue",
+      "choices": [
+        { "choice": "apache2", "description": "Apache-2.0." },
+        { "choice": "mit", "description": "MIT placeholder." }
+      ]
+    }
+  },
+  "primaryOutputs": [
+    { "path": "Aegis.Template.sln" }
+  ]
+}

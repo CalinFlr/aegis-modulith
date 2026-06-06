@@ -1,0 +1,20 @@
+{
+  "name": "Tasks",
+  "schema": "tasks",
+  "type": "business-module",
+  "owner": "taskhub",
+  "dependencies": [
+    "Projects.Contracts"
+  ],
+  "publicContracts": [
+    "TaskCreatedIntegrationEvent"
+  ],
+  "features": [
+    "CreateTask",
+    "ListTasks"
+  ],
+  "rules": {
+    "allowCrossModuleDatabaseAccess": false,
+    "allowInfrastructureReferences": false
+  }
+}

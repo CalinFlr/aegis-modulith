@@ -1,0 +1,15 @@
+{
+  "name": "Aegis.Module",
+  "schema": "aegis_module_schema",
+  "type": "business-module",
+  "owner": "aegis_module_owner",
+  "dependencies": [],
+  "publicContracts": [],
+  "features": [
+    "CreateAegis.Module"
+  ],
+  "rules": {
+    "allowCrossModuleDatabaseAccess": false,
+    "allowInfrastructureReferences": false
+  }
+}

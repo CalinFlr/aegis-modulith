@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aegis.Template.BuildingBlocks\Aegis.Template.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\Aegis.Template.Modules\Aegis.Template.Modules.csproj" />
+    <ProjectReference Include="..\Aegis.Template.ServiceDefaults\Aegis.Template.ServiceDefaults.csproj" Condition="'$(AegisProfile)' != 'core'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+</Project>
