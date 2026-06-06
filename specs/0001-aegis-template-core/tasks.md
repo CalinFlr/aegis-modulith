@@ -2,46 +2,46 @@
 
 ## Repository foundation
 
-- [ ] Initialize git and set branch to `main`.
-- [ ] Add Apache-2.0 license.
-- [ ] Add README, CONTRIBUTING, SECURITY, ROADMAP, CHANGELOG, SUPPORT, and CODE_OF_CONDUCT or intentional placeholders.
-- [ ] Add AGENTS.md, CLAUDE.md, Copilot pointer file, and OpenQuestions.md.
+- [x] Initialize git and set branch to `main`.
+- [x] Add Apache-2.0 license.
+- [x] Add README, CONTRIBUTING, SECURITY, ROADMAP, CHANGELOG, SUPPORT, and CODE_OF_CONDUCT or intentional placeholders.
+- [x] Add AGENTS.md, CLAUDE.md, Copilot pointer file, and OpenQuestions.md.
 
 ## Spec and AI system
 
-- [ ] Keep `specs/` templates and initial core spec.
-- [ ] Add skills, workflows, policies, guardrails, and evals.
-- [ ] Ensure `npm run check` validates specs, skills, workflows, manifests, docs, and security.
+- [x] Keep `specs/` templates and initial core spec.
+- [x] Add skills, workflows, policies, guardrails, and evals.
+- [x] Ensure `npm run check` validates specs, skills, workflows, manifests, docs, and security.
 
 ## Template package
 
-- [ ] Create `Aegis.Modulith.Templates`.
-- [ ] Implement `aegis-modulith`.
-- [ ] Implement `aegis-module`.
-- [ ] Implement `aegis-slice`.
-- [ ] Implement `aegis-event`.
-- [ ] Implement `aegis-worker`.
+- [x] Create `Aegis.Modulith.Templates`.
+- [x] Implement `aegis-modulith`.
+- [x] Implement `aegis-module`.
+- [x] Implement `aegis-slice`.
+- [x] Implement `aegis-event`.
+- [x] Implement `aegis-worker`.
 
 ## Generated solution
 
-- [ ] Generate API-only .NET solution.
-- [ ] Add CQRS-lite contracts and core dispatcher.
-- [ ] Add PostgreSQL schema-per-module persistence.
-- [ ] Add OpenAPI, ProblemDetails, validation, health checks, logging, and OpenTelemetry.
-- [ ] Add architecture tests and integration test skeleton.
+- [x] Generate API-only .NET solution.
+- [x] Add CQRS-lite contracts and core dispatcher.
+- [x] Add PostgreSQL schema-per-module persistence.
+- [x] Add OpenAPI, ProblemDetails, validation, health checks, logging, and OpenTelemetry.
+- [x] Add architecture tests and integration test skeleton.
 
 ## Profiles and options
 
-- [ ] Implement `core` profile.
-- [ ] Implement `pro` profile.
-- [ ] Implement `advanced` profile.
-- [ ] Implement `--mediator mediatr`.
-- [ ] Implement `--sample taskhub`.
+- [x] Implement `core` profile.
+- [x] Implement `pro` profile.
+- [x] Implement `advanced` profile.
+- [x] Implement `--mediator mediatr`.
+- [x] Implement `--sample taskhub`.
 
 ## Validation and polish
 
-- [ ] Add template smoke matrix.
-- [ ] Add CI workflows.
-- [ ] Add docs for profile choice and module manifests.
-- [ ] Add competitive analysis and public positioning.
+- [x] Add template smoke matrix.
+- [x] Add CI workflows.
+- [x] Add docs for profile choice and module manifests.
+- [x] Add competitive analysis and public positioning.
 - [ ] Produce final report.
