@@ -16,6 +16,61 @@
     "language": "C#",
     "type": "project"
   },
+  "sources": [
+    {
+      "source": "./",
+      "target": "./",
+      "modifiers": [
+        {
+          "condition": "(profile == \"core\")",
+          "exclude": [
+            "src/Aegis.Template.Api/Pro/**"
+          ]
+        },
+        {
+          "condition": "(profile != \"advanced\")",
+          "exclude": [
+            "src/Aegis.Template.Api/Advanced/**"
+          ]
+        },
+        {
+          "condition": "(sample == \"taskhub\")",
+          "exclude": [
+            "src/Aegis.Template.Modules/Modules/WorkItems/**"
+          ]
+        },
+        {
+          "condition": "(sample != \"taskhub\")",
+          "exclude": [
+            "src/Aegis.Template.Modules/Modules/Audit/**",
+            "src/Aegis.Template.Modules/Modules/Notifications/**",
+            "src/Aegis.Template.Modules/Modules/Projects/**",
+            "src/Aegis.Template.Modules/Modules/Tasks/**"
+          ]
+        },
+        {
+          "condition": "(hooks != \"lefthook\")",
+          "exclude": [
+            "lefthook.yml"
+          ]
+        },
+        {
+          "condition": "(ai == \"none\")",
+          "exclude": [
+            "AGENTS.md",
+            "OpenQuestions.md",
+            "specs/**"
+          ]
+        },
+        {
+          "condition": "(ai != \"enterprise\")",
+          "exclude": [
+            "specs/**"
+          ]
+        }
+      ]
+    }
+  ],
   "symbols": {
     "profile": {
       "type": "parameter",

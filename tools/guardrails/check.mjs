@@ -351,6 +351,29 @@ async function checkTemplateSmoke() {
           errors.push(`TaskHub sample missing ${moduleName} module manifest.`);
         }
       }
+
+      const starterManifest = join(output, "src", `${variant.name}.Modules`, "Modules", "WorkItems", "module.json");
+      if (existsSync(starterManifest)) {
+        errors.push("TaskHub sample should not include the starter WorkItems module.");
+      }
+    }
+
+    if (variant.id === "core-core") {
+      const starterManifest = join(output, "src", `${variant.name}.Modules`, "Modules", "WorkItems", "module.json");
+      const projectManifest = join(output, "src", `${variant.name}.Modules`, "Modules", "Projects", "module.json");
+      if (!existsSync(starterManifest)) {
+        errors.push("Core sample-none variant should include the starter WorkItems module.");
+      }
+      if (existsSync(projectManifest)) {
+        errors.push("Core sample-none variant should not include TaskHub Projects module.");
+      }
+      if (existsSync(join(output, "lefthook.yml"))) {
+        errors.push("hooks=none variant should not include lefthook.yml.");
+      }
+    }
+
+    if (variant.id === "strict-enterprise" && !existsSync(join(output, "lefthook.yml"))) {
+      errors.push("hooks=lefthook variant should include lefthook.yml.");
     }
   }
 
