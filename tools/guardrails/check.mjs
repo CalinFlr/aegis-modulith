@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { spawn } from "node:child_process";
 
@@ -35,9 +35,14 @@ function listFiles(dir, predicate = () => true) {
   return out;
 }
 
-async function runCommand(command, args) {
+async function runCommand(command, args, options = {}) {
   return new Promise((resolve) => {
-    const child = spawn(command, args, { stdio: "inherit", shell: false });
+    const child = spawn(command, args, {
+      cwd: options.cwd ?? root,
+      env: options.env ?? process.env,
+      stdio: "inherit",
+      shell: false
+    });
     child.on("exit", code => resolve(code ?? 1));
     child.on("error", () => resolve(1));
   });
@@ -205,9 +210,161 @@ async function checkDotnetAvailable() {
   return code === 0 ? pass("dotnet available") : fail("dotnet available", ["dotnet CLI is not available."]);
 }
 
-async function checkTemplateSmokePlaceholder() {
-  // This is a seed. Codex must replace this with real template smoke generation once templates exist.
-  return pass("template smoke placeholder");
+async function checkTemplateSmoke() {
+  const errors = [];
+  const templateProject = "templates/Aegis.Modulith.Templates/Aegis.Modulith.Templates.csproj";
+  if (!existsSync(join(root, templateProject))) {
+    return fail("template smoke", [`${templateProject} is missing.`]);
+  }
+
+  const smokeRoot = join(root, "artifacts", "template-smoke");
+  const packagesDir = join(smokeRoot, "packages");
+  const generatedRoot = join(smokeRoot, "generated");
+  const itemRoot = join(smokeRoot, "items");
+  const dotnetHome = join(smokeRoot, "dotnet-home");
+
+  rmSync(smokeRoot, { recursive: true, force: true });
+  mkdirSync(packagesDir, { recursive: true });
+  mkdirSync(generatedRoot, { recursive: true });
+  mkdirSync(itemRoot, { recursive: true });
+  mkdirSync(dotnetHome, { recursive: true });
+
+  let code = await runCommand("dotnet", [
+    "pack",
+    templateProject,
+    "-c",
+    "Release",
+    "-o",
+    packagesDir
+  ]);
+  if (code !== 0) {
+    return fail("template smoke", ["dotnet pack failed."]);
+  }
+
+  const nupkg = readdirSync(packagesDir)
+    .filter(file => file.startsWith("Aegis.Modulith.Templates.") && file.endsWith(".nupkg"))
+    .sort()
+    .at(-1);
+
+  if (!nupkg) {
+    return fail("template smoke", ["Template package was not produced."]);
+  }
+
+  const smokeEnv = {
+    ...process.env,
+    DOTNET_CLI_HOME: dotnetHome,
+    DOTNET_CLI_TELEMETRY_OPTOUT: "1",
+    DOTNET_NOLOGO: "1"
+  };
+
+  code = await runCommand("dotnet", [
+    "new",
+    "install",
+    join(packagesDir, nupkg),
+    "--force"
+  ], { env: smokeEnv });
+  if (code !== 0) {
+    return fail("template smoke", ["dotnet new install failed."]);
+  }
+
+  const matrix = [
+    { id: "core-core", name: "Smoke.CoreCore", args: ["--profile", "core", "--mediator", "core"] },
+    { id: "core-mediatr", name: "Smoke.CoreMediatR", args: ["--profile", "core", "--mediator", "mediatr"] },
+    { id: "pro-core", name: "Smoke.ProCore", args: ["--profile", "pro", "--mediator", "core"] },
+    { id: "pro-mediatr", name: "Smoke.ProMediatR", args: ["--profile", "pro", "--mediator", "mediatr"] },
+    { id: "advanced-core", name: "Smoke.AdvancedCore", args: ["--profile", "advanced", "--mediator", "core"] },
+    { id: "advanced-mediatr", name: "Smoke.AdvancedMediatR", args: ["--profile", "advanced", "--mediator", "mediatr"] },
+    { id: "taskhub", name: "Aegis.TaskHub", args: ["--profile", "pro", "--sample", "taskhub"] },
+    { id: "strict-enterprise", name: "Smoke.StrictEnterprise", args: ["--profile", "advanced", "--ai", "enterprise", "--guardrails", "strict", "--hooks", "lefthook"] }
+  ];
+
+  for (const variant of matrix) {
+    const output = join(generatedRoot, variant.id);
+    code = await runCommand("dotnet", [
+      "new",
+      "aegis-modulith",
+      "-n",
+      variant.name,
+      ...variant.args,
+      "-o",
+      output
+    ], { env: smokeEnv });
+    if (code !== 0) {
+      return fail("template smoke", [`Generation failed for ${variant.id}.`]);
+    }
+
+    const solution = join(output, `${variant.name}.sln`);
+    if (!existsSync(solution)) {
+      return fail("template smoke", [`${variant.id} did not generate ${variant.name}.sln.`]);
+    }
+
+    for (const command of [
+      ["restore", solution],
+      ["build", solution, "-c", "Release", "--no-restore"],
+      ["test", solution, "-c", "Release", "--no-build"]
+    ]) {
+      code = await runCommand("dotnet", command, { env: smokeEnv });
+      if (code !== 0) {
+        return fail("template smoke", [`dotnet ${command[0]} failed for ${variant.id}.`]);
+      }
+    }
+
+    if (variant.id === "taskhub") {
+      for (const moduleName of ["Projects", "Tasks", "Notifications", "Audit"]) {
+        const manifest = join(output, "src", `${variant.name}.Modules`, "Modules", moduleName, "module.json");
+        if (!existsSync(manifest)) {
+          errors.push(`TaskHub sample missing ${moduleName} module manifest.`);
+        }
+      }
+    }
+  }
+
+  const itemChecks = [
+    {
+      id: "module",
+      args: ["new", "aegis-module", "-n", "Billing", "--schema", "billing", "-o", join(itemRoot, "module")],
+      project: join(itemRoot, "module", "Billing.csproj"),
+      required: [join(itemRoot, "module", "module.json")]
+    },
+    {
+      id: "slice",
+      args: ["new", "aegis-slice", "-n", "CreateInvoice", "--module", "Billing", "--kind", "command", "-o", join(itemRoot, "slice")],
+      required: [join(itemRoot, "slice", "CreateInvoiceHandler.cs")]
+    },
+    {
+      id: "event",
+      args: ["new", "aegis-event", "-n", "InvoiceIssued", "--module", "Billing", "--scope", "integration", "-o", join(itemRoot, "event")],
+      required: [join(itemRoot, "event", "InvoiceIssued.cs")]
+    },
+    {
+      id: "worker",
+      args: ["new", "aegis-worker", "-n", "BillingOutboxDispatcher", "--module", "Billing", "-o", join(itemRoot, "worker")],
+      project: join(itemRoot, "worker", "BillingOutboxDispatcher.csproj"),
+      required: [join(itemRoot, "worker", "Worker.cs")]
+    }
+  ];
+
+  for (const item of itemChecks) {
+    code = await runCommand("dotnet", item.args, { env: smokeEnv });
+    if (code !== 0) {
+      return fail("template smoke", [`Item template generation failed for ${item.id}.`]);
+    }
+
+    for (const required of item.required) {
+      if (!existsSync(required)) {
+        errors.push(`${item.id} item missing ${required}.`);
+      }
+    }
+
+    if (item.project) {
+      code = await runCommand("dotnet", ["build", item.project, "-c", "Release"], { env: smokeEnv });
+      if (code !== 0) {
+        return fail("template smoke", [`Item template build failed for ${item.id}.`]);
+      }
+    }
+  }
+
+  return errors.length ? fail("template smoke", errors) : pass("template smoke");
 }
 
 const groups = {
@@ -218,7 +375,7 @@ const groups = {
   manifests: [checkModuleManifestTemplate],
   security: [checkSecurity],
   dotnet: [checkDotnetAvailable],
-  "template-smoke": [checkTemplateSmokePlaceholder],
+  "template-smoke": [checkTemplateSmoke],
   all: [checkAi, checkOpenQuestions, checkSkills, checkWorkflows, checkDocs, checkSpecs, checkModuleManifestTemplate, checkSecurity]
 };
 

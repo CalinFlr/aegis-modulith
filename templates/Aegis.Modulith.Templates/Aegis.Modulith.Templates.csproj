@@ -7,6 +7,7 @@
     <Description>dotnet new templates for API-only modular monoliths with CQRS-lite, PostgreSQL, vertical slices, module manifests, and AI guardrails.</Description>
     <PackageTags>dotnet-new;template;modular-monolith;cqrs;postgresql;vertical-slice</PackageTags>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/aegis-modulith/aegis-modulith</PackageProjectUrl>
     <RepositoryUrl>https://github.com/aegis-modulith/aegis-modulith</RepositoryUrl>
     <PackageType>Template</PackageType>
@@ -19,6 +20,7 @@
 
   <ItemGroup>
     <Compile Remove="content\**\*.cs" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
     <Content Include="content\**\*" Exclude="content\**\bin\**;content\**\obj\**" />
   </ItemGroup>
 </Project>
