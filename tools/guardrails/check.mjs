@@ -126,6 +126,7 @@ function assertMediatorSemantics(errors, output, variant) {
 function assertProfileSemantics(errors, output, variant) {
   const solution = join(output, `${variant.name}.sln`);
   const program = join(output, "src", `${variant.name}.Api`, "Program.cs");
+  const apiProject = join(output, "src", `${variant.name}.Api`, `${variant.name}.Api.csproj`);
   const appHostProject = join(output, "src", `${variant.name}.AppHost`, `${variant.name}.AppHost.csproj`);
   const serviceDefaultsProject = join(output, "src", `${variant.name}.ServiceDefaults`, `${variant.name}.ServiceDefaults.csproj`);
   const dockerfile = join(output, "Dockerfile");
@@ -138,6 +139,7 @@ function assertProfileSemantics(errors, output, variant) {
     assertMissing(errors, dockerfile, `${variant.id} core profile should not include Dockerfile.`);
     assertMissing(errors, proServices, `${variant.id} core profile should not include pro profile services.`);
     assertMissing(errors, advancedServices, `${variant.id} core profile should not include advanced profile services.`);
+    assertNotContains(errors, apiProject, "ServiceDefaults", `${variant.id} API project should not reference ServiceDefaults.`);
     assertNotContains(errors, solution, "AppHost", `${variant.id} solution should not reference AppHost.`);
     assertNotContains(errors, solution, "ServiceDefaults", `${variant.id} solution should not reference ServiceDefaults.`);
     assertNotContains(errors, program, "AddProProfileServices", `${variant.id} Program.cs should not wire pro services.`);
@@ -151,6 +153,7 @@ function assertProfileSemantics(errors, output, variant) {
   assertExists(errors, serviceDefaultsProject, `${variant.id} should include ServiceDefaults.`);
   assertExists(errors, dockerfile, `${variant.id} should include Dockerfile.`);
   assertExists(errors, proServices, `${variant.id} should include pro profile services.`);
+  assertContains(errors, apiProject, "ServiceDefaults", `${variant.id} API project should reference ServiceDefaults.`);
   assertContains(errors, solution, "AppHost", `${variant.id} solution should reference AppHost.`);
   assertContains(errors, solution, "ServiceDefaults", `${variant.id} solution should reference ServiceDefaults.`);
   assertContains(errors, program, "builder.AddServiceDefaults();", `${variant.id} Program.cs should wire ServiceDefaults.`);
