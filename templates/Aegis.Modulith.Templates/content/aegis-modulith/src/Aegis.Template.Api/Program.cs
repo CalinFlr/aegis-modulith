@@ -3,12 +3,12 @@ using Aegis.Template.Modules;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
-#if AEGIS_PRO_OR_ADVANCED
+#if (profile != "core")
 using Aegis.Template.Api.Pro;
 using Aegis.Template.ServiceDefaults;
 #endif
 
-#if AEGIS_ADVANCED
+#if (profile == "advanced")
 using Aegis.Template.Api.Advanced;
 #endif
 
@@ -23,18 +23,22 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddAegisDispatching(typeof(ModulesAssemblyMarker).Assembly);
 builder.Services.AddAegisModules(builder.Configuration);
 
-#if AEGIS_PRO_OR_ADVANCED
+#if (profile != "core")
 builder.AddServiceDefaults();
 builder.Services.AddProProfileServices();
 #endif
 
-#if AEGIS_ADVANCED
+#if (profile == "advanced")
 builder.Services.AddAdvancedProfileServices();
 #endif
 
 var app = builder.Build();
 
 app.UseExceptionHandler();
+#if (profile != "core")
+app.UseRateLimiter();
+#endif
+
 app.MapOpenApi();
 app.MapHealthChecks("/health");
 app.MapGet("/", () => Results.Ok(new
@@ -47,11 +51,11 @@ app.MapGet("/", () => Results.Ok(new
 
 app.MapAegisModules();
 
-#if AEGIS_PRO_OR_ADVANCED
+#if (profile != "core")
 app.MapProProfileEndpoints();
 #endif
 
-#if AEGIS_ADVANCED
+#if (profile == "advanced")
 app.MapAdvancedProfileEndpoints();
 #endif
 

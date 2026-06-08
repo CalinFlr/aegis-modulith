@@ -8,10 +8,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aegis.Template.BuildingBloc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aegis.Template.Modules", "src\Aegis.Template.Modules\Aegis.Template.Modules.csproj", "{3C38C9B5-41AD-47C1-8E64-C6C489D5D745}"
 EndProject
+#if (profile != "core")
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aegis.Template.ServiceDefaults", "src\Aegis.Template.ServiceDefaults\Aegis.Template.ServiceDefaults.csproj", "{06602D78-77E6-42FE-8F2D-54B7109527B7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aegis.Template.AppHost", "src\Aegis.Template.AppHost\Aegis.Template.AppHost.csproj", "{86D0A419-A527-4A60-87C0-3543A8CFB4BC}"
 EndProject
+#endif
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aegis.Template.ArchitectureTests", "tests\Aegis.Template.ArchitectureTests\Aegis.Template.ArchitectureTests.csproj", "{F0B6236A-96CF-44D5-95DA-7DC7A6B3CC53}"
 EndProject
 Global
@@ -32,6 +34,7 @@ Global
     {3C38C9B5-41AD-47C1-8E64-C6C489D5D745}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {3C38C9B5-41AD-47C1-8E64-C6C489D5D745}.Release|Any CPU.ActiveCfg = Release|Any CPU
     {3C38C9B5-41AD-47C1-8E64-C6C489D5D745}.Release|Any CPU.Build.0 = Release|Any CPU
+#if (profile != "core")
     {06602D78-77E6-42FE-8F2D-54B7109527B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     {06602D78-77E6-42FE-8F2D-54B7109527B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {06602D78-77E6-42FE-8F2D-54B7109527B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -40,6 +43,7 @@ Global
     {86D0A419-A527-4A60-87C0-3543A8CFB4BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {86D0A419-A527-4A60-87C0-3543A8CFB4BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
     {86D0A419-A527-4A60-87C0-3543A8CFB4BC}.Release|Any CPU.Build.0 = Release|Any CPU
+#endif
     {F0B6236A-96CF-44D5-95DA-7DC7A6B3CC53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     {F0B6236A-96CF-44D5-95DA-7DC7A6B3CC53}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {F0B6236A-96CF-44D5-95DA-7DC7A6B3CC53}.Release|Any CPU.ActiveCfg = Release|Any CPU

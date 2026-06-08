@@ -24,7 +24,10 @@
         {
           "condition": "(profile == \"core\")",
           "exclude": [
-            "src/Aegis.Template.Api/Pro/**"
+            "Dockerfile",
+            "src/Aegis.Template.Api/Pro/**",
+            "src/Aegis.Template.AppHost/**",
+            "src/Aegis.Template.ServiceDefaults/**"
           ]
         },
         {
