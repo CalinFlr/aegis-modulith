@@ -1,0 +1,17 @@
+{
+  "name": "aegis-template-app",
+  "private": true,
+  "type": "module",
+  "license": "AegisLicenseExpressionValue",
+  "scripts": {
+    "check": "node tools/guardrails/check.mjs all",
+    "check:ai": "node tools/guardrails/check.mjs ai",
+    "check:docs": "node tools/guardrails/check.mjs docs",
+    "check:security": "node tools/guardrails/check.mjs security",
+    "check:specs": "node tools/guardrails/check.mjs specs",
+    "template:smoke": "node tools/guardrails/check.mjs template-smoke"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

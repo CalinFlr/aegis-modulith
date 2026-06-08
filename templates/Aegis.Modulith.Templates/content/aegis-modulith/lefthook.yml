@@ -1,4 +1,12 @@
 pre-commit:
   commands:
+#if (guardrails != "off")
+    guardrails:
+      run: npm run check
+#endif
+#if (guardrails == "off")
     dotnet-build:
       run: dotnet build -c Release
+    dotnet-test:
+      run: dotnet test -c Release --no-build
+#endif

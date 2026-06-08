@@ -1,0 +1,11 @@
+forbidden:
+  - pattern: "rm -rf"
+    reason: "Destructive command"
+  - pattern: "TreatWarningsAsErrors>false"
+    reason: "Do not weaken build quality"
+  - path: "**/.env"
+    block: true
+  - path: "**/*secret*"
+    requiresApproval: true
+  - path: ".github/workflows/**"
+    requiresApproval: true

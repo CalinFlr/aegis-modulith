@@ -20,6 +20,10 @@
     {
       "source": "./",
       "target": "./",
+      "exclude": [
+        "LICENSE.apache2",
+        "LICENSE.mit"
+      ],
       "modifiers": [
         {
           "condition": "(profile == \"core\")",
@@ -58,20 +62,93 @@
           ]
         },
         {
+          "condition": "(guardrails == \"off\")",
+          "exclude": [
+            "package.json",
+            "tools/guardrails/**"
+          ]
+        },
+        {
+          "condition": "(guardrails != \"strict\")",
+          "exclude": [
+            ".ai/guardrails/strict-rules.md",
+            ".ai/policies/strict-mode.md"
+          ]
+        },
+        {
           "condition": "(ai == \"none\")",
           "exclude": [
             "AGENTS.md",
+            "CLAUDE.md",
             "OpenQuestions.md",
+            ".github/copilot-instructions.md",
+            ".ai/**",
+            ".agents/**",
+            "docs/ai-development/**",
             "specs/**"
           ]
         },
         {
           "condition": "(ai != \"enterprise\")",
           "exclude": [
+            ".ai/**",
+            ".agents/**",
+            "docs/ai-development/guardrails.md",
+            "docs/ai-development/skills.md",
+            "docs/ai-development/spec-driven-development.md",
+            "docs/ai-development/workflows.md",
             "specs/**"
+          ]
+        },
+        {
+          "condition": "(skills == \"none\")",
+          "exclude": [
+            ".agents/skills/**"
+          ]
+        },
+        {
+          "condition": "(skills == \"core\")",
+          "exclude": [
+            ".agents/skills/competitive-review/**",
+            ".agents/skills/efcore-migration-review/**",
+            ".agents/skills/guardrail-runner/**",
+            ".agents/skills/module-manifest-review/**",
+            ".agents/skills/openapi-contract-review/**",
+            ".agents/skills/security-review/**"
+          ]
+        },
+        {
+          "condition": "(docs != \"full\")",
+          "exclude": [
+            "docs/ai-development/**",
+            "docs/adr/**",
+            "docs/operations.md",
+            "docs/security.md"
           ]
         }
       ]
+    },
+    {
+      "source": "./",
+      "target": "./",
+      "condition": "(license == \"apache2\")",
+      "include": [
+        "LICENSE.apache2"
+      ],
+      "rename": {
+        "LICENSE.apache2": "LICENSE"
+      }
+    },
+    {
+      "source": "./",
+      "target": "./",
+      "condition": "(license == \"mit\")",
+      "include": [
+        "LICENSE.mit"
+      ],
+      "rename": {
+        "LICENSE.mit": "LICENSE"
+      }
     }
   ],
   "symbols": {
@@ -179,8 +256,34 @@
       "replaces": "AegisLicenseValue",
       "choices": [
         { "choice": "apache2", "description": "Apache-2.0." },
-        { "choice": "mit", "description": "MIT placeholder." }
+        { "choice": "mit", "description": "MIT." }
       ]
+    },
+    "licenseExpression": {
+      "type": "generated",
+      "generator": "switch",
+      "datatype": "string",
+      "replaces": "AegisLicenseExpressionValue",
+      "parameters": {
+        "evaluator": "C++",
+        "cases": [
+          { "condition": "(license == \"apache2\")", "value": "Apache-2.0" },
+          { "condition": "(license == \"mit\")", "value": "MIT" }
+        ]
+      }
+    },
+    "licenseName": {
+      "type": "generated",
+      "generator": "switch",
+      "datatype": "string",
+      "replaces": "AegisLicenseNameValue",
+      "parameters": {
+        "evaluator": "C++",
+        "cases": [
+          { "condition": "(license == \"apache2\")", "value": "Apache License 2.0" },
+          { "condition": "(license == \"mit\")", "value": "MIT License" }
+        ]
+      }
     }
   },
   "primaryOutputs": [

@@ -13,5 +13,9 @@ This generated repository follows the Aegis.Modulith rules:
 - Do not create generic repositories over EF Core.
 - MediatR is optional; the generated mediator mode is `AegisMediatorValue`.
 - Generated modules must include `module.json` manifests.
+- Generated AI mode is `AegisAiValue`; generated guardrails mode is `AegisGuardrailsValue`.
 
 Use `OpenQuestions.md` for blockers and inferred decisions.
+#if (ai == "enterprise")
+Use `specs/` for meaningful feature, template, workflow, and architecture changes.
+#endif
