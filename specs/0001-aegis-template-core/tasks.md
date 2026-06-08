@@ -37,6 +37,12 @@
 - [x] Implement `advanced` profile.
 - [x] Implement `--mediator mediatr`.
 - [x] Implement `--sample taskhub`.
+- [x] Implement generated `--ai none|agents|enterprise` file-shape materialization.
+- [x] Implement generated `--guardrails off|standard|strict` runner, package, CI, and strict artifact materialization.
+- [x] Implement generated `--hooks none|lefthook` materialization, including dotnet-only hooks when guardrails are off.
+- [x] Implement generated `--skills none|core|enterprise` skill-set materialization.
+- [x] Implement generated `--docs standard|full` docs materialization.
+- [x] Implement generated `--license apache2|mit` license materialization.
 
 ## Validation and polish
 

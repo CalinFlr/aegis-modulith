@@ -25,6 +25,15 @@
 - [x] No `.sh` or `.ps1` guardrail logic is added.
 - [x] `OpenQuestions.md` includes blockers or inferred decisions if any remain.
 
+## P1A generated AI and guardrail options
+
+- [x] Smoke asserts `--ai none|agents|enterprise` generated file shape.
+- [x] Smoke asserts `--guardrails off|standard|strict` generated runner, package, CI, and strict artifact shape.
+- [x] Smoke asserts `--hooks none|lefthook`, including dotnet-only Lefthook output when guardrails are off.
+- [x] Smoke asserts `--skills none|core|enterprise` generated skill sets.
+- [x] Smoke asserts `--docs standard|full` generated docs shape.
+- [x] Smoke asserts `--license apache2|mit` generated license, README, and package metadata.
+
 ## Documentation
 
 - [x] README includes golden path.
