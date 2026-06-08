@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
 using MediatR;
 #endif
 
@@ -11,7 +11,7 @@ public static class DispatchingServiceCollectionExtensions
 {
     public static IServiceCollection AddAegisDispatching(this IServiceCollection services, params Assembly[] handlerAssemblies)
     {
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
         services.AddMediatR(configuration =>
         {
             foreach (var assembly in handlerAssemblies)
@@ -34,7 +34,7 @@ public static class DispatchingServiceCollectionExtensions
         return services;
     }
 
-#if !AEGIS_MEDIATR
+#if (mediator != "mediatr")
     private static void RegisterCoreHandlers(IServiceCollection services, Assembly assembly)
     {
         foreach (var implementationType in assembly.GetTypes().Where(type => type is { IsClass: true, IsAbstract: false }))

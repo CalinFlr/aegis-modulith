@@ -6,7 +6,7 @@ namespace Aegis.Template.Modules.Modules.WorkItems.Features.GetWorkItemById;
 
 public sealed class GetWorkItemByIdHandler(WorkItemsDbContext dbContext) :
     IQueryHandler<GetWorkItemByIdQuery, GetWorkItemByIdResponse?>
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
     , MediatR.IRequestHandler<GetWorkItemByIdQuery, GetWorkItemByIdResponse?>
 #endif
 {
@@ -19,7 +19,7 @@ public sealed class GetWorkItemByIdHandler(WorkItemsDbContext dbContext) :
             .SingleOrDefaultAsync(cancellationToken);
     }
 
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
     async Task<GetWorkItemByIdResponse?> MediatR.IRequestHandler<GetWorkItemByIdQuery, GetWorkItemByIdResponse?>.Handle(
         GetWorkItemByIdQuery request,
         CancellationToken cancellationToken) => await Handle(request, cancellationToken);

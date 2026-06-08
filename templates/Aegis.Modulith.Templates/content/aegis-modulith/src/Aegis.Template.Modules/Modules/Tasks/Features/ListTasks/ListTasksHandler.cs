@@ -6,7 +6,7 @@ namespace Aegis.Template.Modules.Modules.Tasks.Features.ListTasks;
 
 public sealed class ListTasksHandler(TasksDbContext dbContext) :
     IQueryHandler<ListTasksQuery, IReadOnlyList<ListTasksResponse>>
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
     , MediatR.IRequestHandler<ListTasksQuery, IReadOnlyList<ListTasksResponse>>
 #endif
 {
@@ -19,7 +19,7 @@ public sealed class ListTasksHandler(TasksDbContext dbContext) :
             .ToArrayAsync(cancellationToken);
     }
 
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
     async Task<IReadOnlyList<ListTasksResponse>> MediatR.IRequestHandler<ListTasksQuery, IReadOnlyList<ListTasksResponse>>.Handle(
         ListTasksQuery request,
         CancellationToken cancellationToken) => await Handle(request, cancellationToken);
