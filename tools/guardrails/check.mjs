@@ -19,6 +19,10 @@ function read(path) {
   return readFileSync(join(root, path), "utf8");
 }
 
+function readAbsolute(path) {
+  return readFileSync(path, "utf8");
+}
+
 function listFiles(dir, predicate = () => true) {
   const abs = join(root, dir);
   if (!existsSync(abs)) return [];
@@ -46,6 +50,123 @@ async function runCommand(command, args, options = {}) {
     child.on("exit", code => resolve(code ?? 1));
     child.on("error", () => resolve(1));
   });
+}
+
+function assertExists(errors, path, message) {
+  if (!existsSync(path)) {
+    errors.push(message);
+  }
+}
+
+function assertMissing(errors, path, message) {
+  if (existsSync(path)) {
+    errors.push(message);
+  }
+}
+
+function assertContains(errors, path, expected, message) {
+  if (!existsSync(path)) {
+    errors.push(`${message} Missing file: ${path}.`);
+    return;
+  }
+
+  const content = readAbsolute(path);
+  if (!content.includes(expected)) {
+    errors.push(message);
+  }
+}
+
+function assertNotContains(errors, path, unexpected, message) {
+  if (!existsSync(path)) {
+    return;
+  }
+
+  const content = readAbsolute(path);
+  if (content.includes(unexpected)) {
+    errors.push(message);
+  }
+}
+
+function assertGeneratedOptions(errors, output, variant) {
+  const props = join(output, "Directory.Build.props");
+  assertContains(errors, props, `<AegisProfile>${variant.profile}</AegisProfile>`, `${variant.id} should record the selected profile.`);
+  assertContains(errors, props, `<AegisMediator>${variant.mediator}</AegisMediator>`, `${variant.id} should record the selected mediator.`);
+  assertContains(errors, props, `<AegisSample>${variant.sample}</AegisSample>`, `${variant.id} should record the selected sample.`);
+  assertContains(errors, props, `<AegisGuardrails>${variant.guardrails}</AegisGuardrails>`, `${variant.id} should record the selected guardrails mode.`);
+}
+
+function assertMediatorSemantics(errors, output, variant) {
+  const dispatching = join(output, "src", `${variant.name}.BuildingBlocks`, "Cqrs", "DispatchingServiceCollectionExtensions.cs");
+  const module = variant.sample === "taskhub" ? "Projects" : "WorkItems";
+  const feature = variant.sample === "taskhub" ? "CreateProject" : "CreateWorkItem";
+  const command = join(output, "src", `${variant.name}.Modules`, "Modules", module, "Features", feature, `${feature}Command.cs`);
+  const handler = join(output, "src", `${variant.name}.Modules`, "Modules", module, "Features", feature, `${feature}Handler.cs`);
+
+  if (variant.mediator === "mediatr") {
+    assertContains(errors, dispatching, "services.AddMediatR", `${variant.id} should register MediatR services.`);
+    assertContains(errors, dispatching, "MediatRCommandDispatcher", `${variant.id} should use the MediatR command dispatcher.`);
+    assertContains(errors, dispatching, "MediatRQueryDispatcher", `${variant.id} should use the MediatR query dispatcher.`);
+    assertContains(errors, dispatching, "ISender sender", `${variant.id} should dispatch through MediatR ISender.`);
+    assertNotContains(errors, dispatching, "RegisterCoreHandlers(services", `${variant.id} should not register core handlers in MediatR mode.`);
+    assertNotContains(errors, dispatching, "ServiceProviderCommandDispatcher", `${variant.id} should not use the core command dispatcher in MediatR mode.`);
+    assertContains(errors, command, "MediatR.IRequest<", `${variant.id} commands should implement MediatR.IRequest.`);
+    assertContains(errors, handler, "MediatR.IRequestHandler<", `${variant.id} handlers should implement MediatR.IRequestHandler.`);
+    return;
+  }
+
+  assertContains(errors, dispatching, "RegisterCoreHandlers(services", `${variant.id} should register core CQRS handlers.`);
+  assertContains(errors, dispatching, "ServiceProviderCommandDispatcher", `${variant.id} should use the core command dispatcher.`);
+  assertContains(errors, dispatching, "ServiceProviderQueryDispatcher", `${variant.id} should use the core query dispatcher.`);
+  assertNotContains(errors, dispatching, "services.AddMediatR", `${variant.id} should not register MediatR services in core mediator mode.`);
+  assertNotContains(errors, dispatching, "MediatRCommandDispatcher", `${variant.id} should not use the MediatR dispatcher in core mediator mode.`);
+  assertNotContains(errors, command, "MediatR.IRequest<", `${variant.id} commands should not implement MediatR.IRequest in core mediator mode.`);
+  assertNotContains(errors, handler, "MediatR.IRequestHandler<", `${variant.id} handlers should not implement MediatR.IRequestHandler in core mediator mode.`);
+}
+
+function assertProfileSemantics(errors, output, variant) {
+  const solution = join(output, `${variant.name}.sln`);
+  const program = join(output, "src", `${variant.name}.Api`, "Program.cs");
+  const appHostProject = join(output, "src", `${variant.name}.AppHost`, `${variant.name}.AppHost.csproj`);
+  const serviceDefaultsProject = join(output, "src", `${variant.name}.ServiceDefaults`, `${variant.name}.ServiceDefaults.csproj`);
+  const dockerfile = join(output, "Dockerfile");
+  const proServices = join(output, "src", `${variant.name}.Api`, "Pro", "ProProfileServices.cs");
+  const advancedServices = join(output, "src", `${variant.name}.Api`, "Advanced", "AdvancedProfileServices.cs");
+
+  if (variant.profile === "core") {
+    assertMissing(errors, appHostProject, `${variant.id} core profile should not include AppHost.`);
+    assertMissing(errors, serviceDefaultsProject, `${variant.id} core profile should not include ServiceDefaults.`);
+    assertMissing(errors, dockerfile, `${variant.id} core profile should not include Dockerfile.`);
+    assertMissing(errors, proServices, `${variant.id} core profile should not include pro profile services.`);
+    assertMissing(errors, advancedServices, `${variant.id} core profile should not include advanced profile services.`);
+    assertNotContains(errors, solution, "AppHost", `${variant.id} solution should not reference AppHost.`);
+    assertNotContains(errors, solution, "ServiceDefaults", `${variant.id} solution should not reference ServiceDefaults.`);
+    assertNotContains(errors, program, "AddProProfileServices", `${variant.id} Program.cs should not wire pro services.`);
+    assertNotContains(errors, program, "MapProProfileEndpoints", `${variant.id} Program.cs should not map pro endpoints.`);
+    assertNotContains(errors, program, "AddAdvancedProfileServices", `${variant.id} Program.cs should not wire advanced services.`);
+    assertNotContains(errors, program, "MapAdvancedProfileEndpoints", `${variant.id} Program.cs should not map advanced endpoints.`);
+    return;
+  }
+
+  assertExists(errors, appHostProject, `${variant.id} should include AppHost.`);
+  assertExists(errors, serviceDefaultsProject, `${variant.id} should include ServiceDefaults.`);
+  assertExists(errors, dockerfile, `${variant.id} should include Dockerfile.`);
+  assertExists(errors, proServices, `${variant.id} should include pro profile services.`);
+  assertContains(errors, solution, "AppHost", `${variant.id} solution should reference AppHost.`);
+  assertContains(errors, solution, "ServiceDefaults", `${variant.id} solution should reference ServiceDefaults.`);
+  assertContains(errors, program, "builder.AddServiceDefaults();", `${variant.id} Program.cs should wire ServiceDefaults.`);
+  assertContains(errors, program, "builder.Services.AddProProfileServices();", `${variant.id} Program.cs should register pro services.`);
+  assertContains(errors, program, "app.UseRateLimiter();", `${variant.id} Program.cs should enable rate limiting middleware.`);
+  assertContains(errors, program, "app.MapProProfileEndpoints();", `${variant.id} Program.cs should map pro endpoints.`);
+
+  if (variant.profile === "advanced") {
+    assertExists(errors, advancedServices, `${variant.id} should include advanced profile services.`);
+    assertContains(errors, program, "builder.Services.AddAdvancedProfileServices();", `${variant.id} Program.cs should register advanced services.`);
+    assertContains(errors, program, "app.MapAdvancedProfileEndpoints();", `${variant.id} Program.cs should map advanced endpoints.`);
+  } else {
+    assertMissing(errors, advancedServices, `${variant.id} pro profile should not include advanced profile services.`);
+    assertNotContains(errors, program, "AddAdvancedProfileServices", `${variant.id} pro Program.cs should not wire advanced services.`);
+    assertNotContains(errors, program, "MapAdvancedProfileEndpoints", `${variant.id} pro Program.cs should not map advanced endpoints.`);
+  }
 }
 
 async function checkAi() {
@@ -303,14 +424,14 @@ async function checkTemplateSmoke() {
   }
 
   const matrix = [
-    { id: "core-core", name: "Smoke.CoreCore", args: ["--profile", "core", "--mediator", "core"] },
-    { id: "core-mediatr", name: "Smoke.CoreMediatR", args: ["--profile", "core", "--mediator", "mediatr"] },
-    { id: "pro-core", name: "Smoke.ProCore", args: ["--profile", "pro", "--mediator", "core"] },
-    { id: "pro-mediatr", name: "Smoke.ProMediatR", args: ["--profile", "pro", "--mediator", "mediatr"] },
-    { id: "advanced-core", name: "Smoke.AdvancedCore", args: ["--profile", "advanced", "--mediator", "core"] },
-    { id: "advanced-mediatr", name: "Smoke.AdvancedMediatR", args: ["--profile", "advanced", "--mediator", "mediatr"] },
-    { id: "taskhub", name: "Aegis.TaskHub", args: ["--profile", "pro", "--sample", "taskhub"] },
-    { id: "strict-enterprise", name: "Smoke.StrictEnterprise", args: ["--profile", "advanced", "--ai", "enterprise", "--guardrails", "strict", "--hooks", "lefthook"] }
+    { id: "core-core", name: "Smoke.CoreCore", profile: "core", mediator: "core", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "core", "--mediator", "core"] },
+    { id: "core-mediatr", name: "Smoke.CoreMediatR", profile: "core", mediator: "mediatr", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "core", "--mediator", "mediatr"] },
+    { id: "pro-core", name: "Smoke.ProCore", profile: "pro", mediator: "core", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "pro", "--mediator", "core"] },
+    { id: "pro-mediatr", name: "Smoke.ProMediatR", profile: "pro", mediator: "mediatr", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "pro", "--mediator", "mediatr"] },
+    { id: "advanced-core", name: "Smoke.AdvancedCore", profile: "advanced", mediator: "core", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "advanced", "--mediator", "core"] },
+    { id: "advanced-mediatr", name: "Smoke.AdvancedMediatR", profile: "advanced", mediator: "mediatr", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "advanced", "--mediator", "mediatr"] },
+    { id: "taskhub", name: "Aegis.TaskHub", profile: "pro", mediator: "core", sample: "taskhub", guardrails: "standard", hooks: "none", args: ["--profile", "pro", "--sample", "taskhub"] },
+    { id: "strict-enterprise", name: "Smoke.StrictEnterprise", profile: "advanced", mediator: "core", sample: "none", guardrails: "strict", hooks: "lefthook", args: ["--profile", "advanced", "--ai", "enterprise", "--guardrails", "strict", "--hooks", "lefthook"] }
   ];
 
   for (const variant of matrix) {
@@ -344,6 +465,10 @@ async function checkTemplateSmoke() {
       }
     }
 
+    assertGeneratedOptions(errors, output, variant);
+    assertMediatorSemantics(errors, output, variant);
+    assertProfileSemantics(errors, output, variant);
+
     if (variant.id === "taskhub") {
       for (const moduleName of ["Projects", "Tasks", "Notifications", "Audit"]) {
         const manifest = join(output, "src", `${variant.name}.Modules`, "Modules", moduleName, "module.json");
@@ -372,8 +497,10 @@ async function checkTemplateSmoke() {
       }
     }
 
-    if (variant.id === "strict-enterprise" && !existsSync(join(output, "lefthook.yml"))) {
-      errors.push("hooks=lefthook variant should include lefthook.yml.");
+    if (variant.hooks === "lefthook") {
+      assertExists(errors, join(output, "lefthook.yml"), `${variant.id} hooks=lefthook variant should include lefthook.yml.`);
+    } else {
+      assertMissing(errors, join(output, "lefthook.yml"), `${variant.id} hooks=none variant should not include lefthook.yml.`);
     }
   }
 
