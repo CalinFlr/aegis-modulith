@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 
 const root = process.cwd();
 const target = process.argv[2] ?? "all";
@@ -377,24 +378,29 @@ async function checkTemplateSmoke() {
   }
 
   const smokeRootBase = join(root, "artifacts", "template-smoke");
-  let smokeRoot = smokeRootBase;
+  const runsRoot = join(smokeRootBase, "runs");
+  const runId = `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
+  const smokeRoot = join(runsRoot, runId);
 
+  mkdirSync(smokeRoot, { recursive: true });
   try {
-    rmSync(smokeRootBase, { recursive: true, force: true, maxRetries: 3, retryDelay: 250 });
+    writeFileSync(join(smokeRootBase, "latest-run.txt"), `${smokeRoot}\n`, "utf8");
   } catch (error) {
-    smokeRoot = join(root, "artifacts", `template-smoke-${Date.now()}-${process.pid}`);
-    console.warn(`Could not clear ${smokeRootBase}; using ${smokeRoot} for this smoke run.`);
+    console.warn(`Could not update latest smoke run pointer: ${error.message}`);
   }
+  console.log(`Template smoke run directory: ${smokeRoot}`);
 
-  const packagesDir = join(smokeRoot, "packages");
-  const generatedRoot = join(smokeRoot, "generated");
-  const itemRoot = join(smokeRoot, "items");
-  const dotnetHome = join(smokeRoot, "dotnet-home");
+  const packagesDir = join(smokeRoot, "p");
+  const generatedRoot = join(smokeRoot, "g");
+  const itemRoot = join(smokeRoot, "i");
+  const dotnetHome = join(smokeRoot, "h");
+  const nugetPackages = join(smokeRoot, "n");
 
   mkdirSync(packagesDir, { recursive: true });
   mkdirSync(generatedRoot, { recursive: true });
   mkdirSync(itemRoot, { recursive: true });
   mkdirSync(dotnetHome, { recursive: true });
+  mkdirSync(nugetPackages, { recursive: true });
 
   let code = await runCommand("dotnet", [
     "pack",
@@ -421,7 +427,8 @@ async function checkTemplateSmoke() {
     ...process.env,
     DOTNET_CLI_HOME: dotnetHome,
     DOTNET_CLI_TELEMETRY_OPTOUT: "1",
-    DOTNET_NOLOGO: "1"
+    DOTNET_NOLOGO: "1",
+    NUGET_PACKAGES: nugetPackages
   };
 
   code = await runCommand("dotnet", [
