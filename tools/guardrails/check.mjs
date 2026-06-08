@@ -373,13 +373,21 @@ async function checkTemplateSmoke() {
     return fail("template smoke", [`${templateProject} is missing.`]);
   }
 
-  const smokeRoot = join(root, "artifacts", "template-smoke");
+  const smokeRootBase = join(root, "artifacts", "template-smoke");
+  let smokeRoot = smokeRootBase;
+
+  try {
+    rmSync(smokeRootBase, { recursive: true, force: true, maxRetries: 3, retryDelay: 250 });
+  } catch (error) {
+    smokeRoot = join(root, "artifacts", `template-smoke-${Date.now()}-${process.pid}`);
+    console.warn(`Could not clear ${smokeRootBase}; using ${smokeRoot} for this smoke run.`);
+  }
+
   const packagesDir = join(smokeRoot, "packages");
   const generatedRoot = join(smokeRoot, "generated");
   const itemRoot = join(smokeRoot, "items");
   const dotnetHome = join(smokeRoot, "dotnet-home");
 
-  rmSync(smokeRoot, { recursive: true, force: true });
   mkdirSync(packagesDir, { recursive: true });
   mkdirSync(generatedRoot, { recursive: true });
   mkdirSync(itemRoot, { recursive: true });
