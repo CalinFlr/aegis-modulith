@@ -29,15 +29,18 @@ dotnet build -c Release
 dotnet test -c Release
 ```
 
-Add a module and slices:
+Add a module and slices inside the generated modules project:
 
 ```bash
-dotnet new aegis-module -n Billing --schema billing
-dotnet new aegis-slice -n CreateInvoice --module Billing --kind command
-dotnet new aegis-slice -n GetInvoiceById --module Billing --kind query
-dotnet new aegis-event -n InvoiceIssued --module Billing --scope integration
+dotnet new aegis-module -n Billing --schema billing --rootNamespace Acme.WorkHub.Modules --buildingBlocksNamespace Acme.WorkHub.BuildingBlocks --buildingBlocksProject ../../../Acme.WorkHub.BuildingBlocks/Acme.WorkHub.BuildingBlocks.csproj -o src/Acme.WorkHub.Modules/Modules/Billing
+dotnet new aegis-slice -n CreateInvoice --module Billing --kind command --mediator core --rootNamespace Acme.WorkHub.Modules --buildingBlocksNamespace Acme.WorkHub.BuildingBlocks -o src/Acme.WorkHub.Modules/Modules/Billing
+dotnet new aegis-slice -n ListInvoices --module Billing --kind query --paged true --mediator core --rootNamespace Acme.WorkHub.Modules --buildingBlocksNamespace Acme.WorkHub.BuildingBlocks -o src/Acme.WorkHub.Modules/Modules/Billing
+dotnet new aegis-event -n InvoiceIssued --module Billing --scope domain --rootNamespace Acme.WorkHub.Modules --buildingBlocksNamespace Acme.WorkHub.BuildingBlocks -o src/Acme.WorkHub.Modules/Modules/Billing
+dotnet new aegis-event -n InvoiceIssued --module Billing --scope integration --rootNamespace Acme.WorkHub.Modules --buildingBlocksNamespace Acme.WorkHub.BuildingBlocks -o src/Acme.WorkHub.Modules/Modules/Billing
 dotnet new aegis-worker -n BillingOutboxDispatcher --module Billing
 ```
+
+Use `--mediator mediatr` when adding slices to a generated MediatR solution.
 
 Generate the TaskHub reference sample:
 
