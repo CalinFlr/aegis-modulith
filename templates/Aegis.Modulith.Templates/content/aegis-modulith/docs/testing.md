@@ -53,6 +53,12 @@ The handler maps user id and name to standard name claims, roles to `ClaimTypes.
 
 Generated permission-policy tests use fake auth to prove that a request with the required permission can access a protected endpoint and that a request without the required permission is rejected. These tests do not require real JWT issuance.
 
+## Inbox Tests
+
+Generated inbox behavior tests live under `tests/Aegis.Template.IntegrationTests/Inbox`.
+
+They use EF InMemory and prove first acceptance, duplicate detection, processed-message idempotency, failure state, and single handler invocation for duplicate inputs. They do not require Docker or a message broker.
+
 ## HttpClient Resilience
 
 The generated API registers outbound `HttpClient` defaults through `Microsoft.Extensions.Http.Resilience` and `AddStandardResilienceHandler`.

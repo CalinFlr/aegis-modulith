@@ -118,6 +118,17 @@
 - [x] Core profile excludes pro/advanced JWT package references, auth middleware, policy registration, and fake auth; it keeps only documented minimal shared permission constants.
 - [x] `npm run template:smoke` asserts P1D-2A generated semantics without real JWT issuance or an external identity provider.
 
+## P1D-2B inbox pattern scaffold
+
+- [x] Generated pro and advanced profiles include an inbox persistence model with `MessageId`, `IdempotencyKey`, `MessageType`, serialized payload, processing status, timestamps, failure reason, retry count, and simple lease fields.
+- [x] Generated pro and advanced profiles include EF Core inbox configuration, a DbContext, PostgreSQL-friendly `integration.inbox_messages` table naming, and unique indexes for idempotency.
+- [x] Generated pro and advanced profiles include an `IInboxStore` abstraction, EF Core implementation, duplicate detection, accepted/duplicate/already-processed results, and processing status updates.
+- [x] Generated pro and advanced profiles include an inbox processor scaffold, handler dispatch abstraction, sample integration-event handler, and opt-in hosted processor.
+- [x] Generated inbox handlers use module integration event contracts and do not depend on Domain entities or another module's Infrastructure.
+- [x] Generated inbox tests prove first acceptance, duplicate detection, processed-message idempotency, failed-message state, and single handler invocation for duplicate inputs without Docker.
+- [x] Core profile excludes active inbox infrastructure and generated inbox tests.
+- [x] `npm run template:smoke` asserts P1D-2B generated semantics without requiring a broker or Docker.
+
 ## CI and guardrails
 
 - [x] `npm run check` passes.

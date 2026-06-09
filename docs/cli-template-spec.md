@@ -81,6 +81,7 @@ Recommended default:
 - Everything in core.
 - Aspire AppHost and ServiceDefaults.
 - Outbox skeleton.
+- Inbox pattern.
 - Background worker skeleton.
 - Audit log.
 - Idempotency support.
