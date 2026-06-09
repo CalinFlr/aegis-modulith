@@ -193,6 +193,80 @@ function assertProfileSemantics(errors, output, variant) {
   }
 }
 
+function assertP1DFeatureDepthSemantics(errors, output, variant) {
+  const solution = join(output, `${variant.name}.sln`);
+  const packages = join(output, "Directory.Packages.props");
+  const program = join(output, "src", `${variant.name}.Api`, "Program.cs");
+  const apiProject = join(output, "src", `${variant.name}.Api`, `${variant.name}.Api.csproj`);
+  const integrationRoot = join(output, "tests", `${variant.name}.IntegrationTests`);
+  const integrationProject = join(integrationRoot, `${variant.name}.IntegrationTests.csproj`);
+  const postgresFixture = join(integrationRoot, "Infrastructure", "PostgresContainerFixture.cs");
+  const dockerFact = join(integrationRoot, "Infrastructure", "DockerFactAttribute.cs");
+  const factory = join(integrationRoot, "Infrastructure", "AegisWebApplicationFactory.cs");
+  const databaseInitialization = join(integrationRoot, "Infrastructure", "DatabaseInitialization.cs");
+  const containerSmoke = join(integrationRoot, "ContainerizedPostgresSmokeTests.cs");
+  const fakeAuthHandler = join(integrationRoot, "Authentication", "FakeAuthenticationHandler.cs");
+  const fakeAuthDefaults = join(integrationRoot, "Authentication", "FakeAuthenticationDefaults.cs");
+  const fakeAuthHeaders = join(integrationRoot, "Authentication", "FakeAuthenticationHeaders.cs");
+  const authenticatedClientExtensions = join(integrationRoot, "Authentication", "AuthenticatedClientExtensions.cs");
+  const fakeAuthSmoke = join(integrationRoot, "FakeAuthenticationSmokeTests.cs");
+  const proHttpRoot = join(output, "src", `${variant.name}.Api`, "Pro", "Http");
+  const resilientHttp = join(proHttpRoot, "ResilientHttpClientServiceCollectionExtensions.cs");
+  const sampleClient = join(proHttpRoot, "SampleExternalStatusClient.cs");
+  const proServices = join(output, "src", `${variant.name}.Api`, "Pro", "ProProfileServices.cs");
+
+  for (const forbidden of ["FakeAuthenticationHandler", "FakeAuthenticationDefaults", "X-Test-User-Id", "Aegis.Test"]) {
+    assertNotContains(errors, program, forbidden, `${variant.id} production Program.cs must not wire fake authentication.`);
+  }
+
+  if (variant.profile === "core") {
+    assertMissing(errors, integrationRoot, `${variant.id} core profile should not include the P1D integration test project.`);
+    assertMissing(errors, proHttpRoot, `${variant.id} core profile should not include pro HttpClient resilience files.`);
+    assertNotContains(errors, packages, "Testcontainers.PostgreSql", `${variant.id} core profile should not include Testcontainers package versions.`);
+    assertNotContains(errors, packages, "Microsoft.AspNetCore.Mvc.Testing", `${variant.id} core profile should not include WebApplicationFactory package versions.`);
+    assertNotContains(errors, packages, "Microsoft.Extensions.Http.Resilience", `${variant.id} core profile should not include HttpClient resilience package versions.`);
+    assertNotContains(errors, apiProject, "Microsoft.Extensions.Http.Resilience", `${variant.id} core API project should not reference HttpClient resilience.`);
+    assertNotContains(errors, solution, "IntegrationTests", `${variant.id} core solution should not include integration tests.`);
+    return;
+  }
+
+  assertExists(errors, integrationProject, `${variant.id} pro/advanced profile should include generated integration tests.`);
+  assertContains(errors, solution, `${variant.name}.IntegrationTests`, `${variant.id} solution should include integration tests so they build and default-skipped Docker tests are visible.`);
+  assertContains(errors, packages, "Testcontainers.PostgreSql", `${variant.id} should include Testcontainers PostgreSQL package version.`);
+  assertContains(errors, packages, "Microsoft.AspNetCore.Mvc.Testing", `${variant.id} should include WebApplicationFactory package version.`);
+  assertContains(errors, integrationProject, "Testcontainers.PostgreSql", `${variant.id} integration tests should reference Testcontainers PostgreSQL.`);
+  assertContains(errors, integrationProject, "Microsoft.AspNetCore.Mvc.Testing", `${variant.id} integration tests should reference Microsoft.AspNetCore.Mvc.Testing.`);
+
+  assertContains(errors, postgresFixture, "PostgreSqlBuilder", `${variant.id} should include a PostgreSQL Testcontainers fixture.`);
+  assertContains(errors, postgresFixture, "postgres:17-alpine", `${variant.id} PostgreSQL fixture should name the local Docker image.`);
+  assertContains(errors, postgresFixture, "DisposeAsync", `${variant.id} PostgreSQL fixture should dispose the container cleanly.`);
+  assertContains(errors, dockerFact, "AEGIS_RUN_TESTCONTAINERS", `${variant.id} Docker-backed tests should be opt-in and documented in code.`);
+  assertContains(errors, factory, "ConnectionStrings:Postgres", `${variant.id} integration factory should override the generated PostgreSQL connection string.`);
+  assertContains(errors, databaseInitialization, "Database.MigrateAsync", `${variant.id} database initialization placeholder should document migration handoff.`);
+  assertContains(errors, containerSmoke, "Api_host_starts_against_containerized_postgres", `${variant.id} should include an API host smoke test against containerized PostgreSQL.`);
+  assertContains(errors, containerSmoke, "DatabaseInitialization.InitializeAsync", `${variant.id} container smoke test should exercise the database initialization path.`);
+
+  assertExists(errors, fakeAuthHandler, `${variant.id} should include fake auth test handler.`);
+  assertContains(errors, fakeAuthDefaults, "AuthenticationScheme = \"Aegis.Test\"", `${variant.id} fake auth should use a clearly named test scheme.`);
+  assertContains(errors, fakeAuthDefaults, "X-Test-User-Id", `${variant.id} fake auth should document user header claims.`);
+  assertContains(errors, fakeAuthDefaults, "X-Test-Roles", `${variant.id} fake auth should document test roles.`);
+  assertContains(errors, fakeAuthDefaults, "X-Test-Scopes", `${variant.id} fake auth should document test scopes.`);
+  assertContains(errors, fakeAuthHandler, "AuthenticationHandler<AuthenticationSchemeOptions>", `${variant.id} fake auth should use an ASP.NET Core authentication handler.`);
+  assertContains(errors, fakeAuthHeaders, "ReadCsvHeader", `${variant.id} fake auth headers should support role and scope mapping inputs.`);
+  assertContains(errors, authenticatedClientExtensions, "CreateAuthenticatedClient", `${variant.id} should include authenticated test client helpers.`);
+  assertContains(errors, fakeAuthSmoke, "Fake_authentication_scheme_maps_test_client_headers_to_claims", `${variant.id} should include a fake auth mechanism smoke test.`);
+  assertContains(errors, factory, "enableFakeAuthentication", `${variant.id} fake auth should be enabled only through the test factory.`);
+
+  assertContains(errors, packages, "Microsoft.Extensions.Http.Resilience", `${variant.id} should include Microsoft HttpClient resilience package version.`);
+  assertContains(errors, apiProject, "Microsoft.Extensions.Http.Resilience", `${variant.id} API project should reference Microsoft HttpClient resilience.`);
+  assertExists(errors, resilientHttp, `${variant.id} should include HttpClient resilience registration extension.`);
+  assertContains(errors, resilientHttp, "ConfigureHttpClientDefaults", `${variant.id} should configure default outbound HttpClient behavior.`);
+  assertContains(errors, resilientHttp, "AddStandardResilienceHandler", `${variant.id} should use the Microsoft standard resilience handler.`);
+  assertContains(errors, resilientHttp, "AddHttpClient<SampleExternalStatusClient>", `${variant.id} should include a typed sample external client registration.`);
+  assertContains(errors, resilientHttp, "https://example.invalid/", `${variant.id} sample external client should not depend on a real external API.`);
+  assertContains(errors, proServices, "AddAegisOutboundHttpClients", `${variant.id} pro services should wire HttpClient resilience defaults.`);
+}
+
 function assertAiSemantics(errors, output, variant) {
   const aiFiles = [
     "AGENTS.md",
@@ -318,7 +392,7 @@ function assertSkillSemantics(errors, output, variant) {
 }
 
 function assertDocsSemantics(errors, output, variant) {
-  for (const file of ["docs/getting-started.md", "docs/architecture.md", "docs/development.md", "docs/module-manifest.md"]) {
+  for (const file of ["docs/getting-started.md", "docs/architecture.md", "docs/development.md", "docs/testing.md", "docs/module-manifest.md"]) {
     assertExists(errors, join(output, file), `${variant.id} should include standard doc ${file}.`);
   }
 
@@ -757,6 +831,7 @@ async function checkDocs() {
     "docs/architecture/cqrs-lite.md",
     "docs/cli-template-spec.md",
     "docs/implementation-plan.md",
+    "docs/testing.md",
     "docs/acceptance-criteria.md",
     "docs/git-plan.md",
     "docs/open-questions-protocol.md",
@@ -944,6 +1019,7 @@ async function checkTemplateSmoke() {
     assertGeneratedOptions(errors, output, variant);
     assertMediatorSemantics(errors, output, variant);
     assertProfileSemantics(errors, output, variant);
+    assertP1DFeatureDepthSemantics(errors, output, variant);
     assertAiSemantics(errors, output, variant);
     assertGuardrailSemantics(errors, output, variant);
     assertHookSemantics(errors, output, variant);
