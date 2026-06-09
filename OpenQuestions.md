@@ -171,6 +171,21 @@ Use this template:
 - Created: 2026-06-09
 - Resolved: N/A
 
+### Q-20260609-004: Use JWT bearer scaffold with claim-based permissions
+
+- Status: inferred
+- Risk: high
+- Owner: human
+- Source: P1D-2A implementation
+- Affected areas: generated pro/advanced APIs, generated integration tests, auth docs, smoke assertions
+- Question: Should generated auth use JWT bearer validation with user-supplied issuer/audience/signing key and claim-based permission policies, rather than bundling an identity provider or database-backed user system?
+- Context: P1D-2A requires practical auth scaffolding, not a full identity provider integration, login flow, user database, or RBAC/ABAC engine.
+- Proposed default: Generate JWT bearer scaffolding for pro/advanced, reject tokens when required JWT settings are missing, represent permissions as claims registered as named policies, and keep fake auth only in integration tests.
+- Impact if different: A bundled identity provider, database-backed users, or full role/permission engine would require a separate security design, additional dependencies, broader docs, and more validation beyond P1D-2A.
+- Current action: implement default
+- Created: 2026-06-09
+- Resolved: N/A
+
 ## Blockers
 
 No known blockers at pack creation time.

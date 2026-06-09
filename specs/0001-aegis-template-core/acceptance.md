@@ -59,6 +59,17 @@
 - [x] Core generated output excludes P1D-1 Testcontainers, fake-auth, and HttpClient resilience assets.
 - [x] Default template smoke asserts P1D-1 semantics without requiring Docker.
 
+## P1D-2A auth and permission scaffold
+
+- [x] Pro and advanced generated outputs include JWT bearer package references, typed JWT options, and authentication service registration.
+- [x] Pro and advanced generated `Program.cs` calls `UseAuthentication` before `UseAuthorization`.
+- [x] Missing JWT configuration rejects tokens by default rather than accepting arbitrary bearer tokens.
+- [x] Pro and advanced generated outputs include permission constants, claim-type constants, named policies, and policy registration.
+- [x] Generated endpoints demonstrate permission policies for operations and module endpoints, including TaskHub task read/write examples.
+- [x] Generated integration tests use test-only fake auth to prove authorized and forbidden permission outcomes without real JWT issuance.
+- [x] Core excludes pro/advanced JWT/auth/policy/fake-auth assets except documented minimal shared permission constants.
+- [x] Default template smoke asserts P1D-2A semantics without requiring an external identity provider.
+
 ## Documentation
 
 - [x] README includes golden path.
