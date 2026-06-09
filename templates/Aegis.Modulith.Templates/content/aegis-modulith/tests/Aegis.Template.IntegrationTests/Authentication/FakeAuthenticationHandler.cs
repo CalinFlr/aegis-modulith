@@ -22,6 +22,7 @@ public sealed class FakeAuthenticationHandler(
 
         claims.AddRange(user.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
         claims.AddRange(user.Scopes.Select(scope => new Claim(FakeAuthenticationDefaults.ScopeClaimType, scope)));
+        claims.AddRange(user.Permissions.Select(permission => new Claim(FakeAuthenticationDefaults.PermissionClaimType, permission)));
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name);

@@ -4,4 +4,5 @@ public sealed record TestUser(
     string UserId,
     string UserName,
     IReadOnlyCollection<string> Roles,
-    IReadOnlyCollection<string> Scopes);
+    IReadOnlyCollection<string> Scopes,
+    IReadOnlyCollection<string> Permissions);
