@@ -1,4 +1,4 @@
-namespace Aegis.Module.Domain;
+namespace AegisItemRootNamespace.Modules.Aegis.Module.Domain;
 
 public sealed class Aegis.ModuleEntity
 {

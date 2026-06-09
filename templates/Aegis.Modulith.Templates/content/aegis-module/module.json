@@ -5,9 +5,7 @@
   "owner": "aegis_module_owner",
   "dependencies": [],
   "publicContracts": [],
-  "features": [
-    "CreateAegis.Module"
-  ],
+  "features": [],
   "rules": {
     "allowCrossModuleDatabaseAccess": false,
     "allowInfrastructureReferences": false

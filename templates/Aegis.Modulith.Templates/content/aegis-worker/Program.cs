@@ -1,7 +1,7 @@
 using Aegis.Worker;
 
 var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddHostedService<Worker>();
+builder.Services.AddAegis.Worker();
 
 var app = builder.Build();
 app.Run();
