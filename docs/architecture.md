@@ -4,6 +4,12 @@
 
 `Aegis.Modulith` uses a modular monolith with CQRS-lite and vertical slices.
 
+Focused rule docs:
+
+- [CQRS-lite](architecture/cqrs-lite.md)
+- [Vertical slices](architecture/vertical-slices.md)
+- [Module manifests](architecture/module-manifest.md)
+
 ## Modular monolith
 
 The application is deployed as one process by default, but internally divided into business modules. Modules own their own features, domain model, infrastructure, persistence schema, contracts, and tests.

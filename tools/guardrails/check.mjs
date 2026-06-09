@@ -665,6 +665,7 @@ async function checkDocs() {
   const required = [
     "docs/project-brief.md",
     "docs/architecture.md",
+    "docs/architecture/cqrs-lite.md",
     "docs/cli-template-spec.md",
     "docs/implementation-plan.md",
     "docs/acceptance-criteria.md",
@@ -676,6 +677,7 @@ async function checkDocs() {
     "docs/ai-development/spec-driven-development.md",
     "docs/ai-development/ai-pr-protocol.md",
     "docs/architecture/module-manifest.md",
+    "docs/architecture/vertical-slices.md",
     "docs/adr/0012-use-spec-driven-development.md"
   ];
   const errors = required.filter(f => !existsSync(join(root, f))).map(f => `${f} is missing.`);
