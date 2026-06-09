@@ -214,6 +214,7 @@ function assertP1DFeatureDepthSemantics(errors, output, variant) {
   const resilientHttp = join(proHttpRoot, "ResilientHttpClientServiceCollectionExtensions.cs");
   const sampleClient = join(proHttpRoot, "SampleExternalStatusClient.cs");
   const proServices = join(output, "src", `${variant.name}.Api`, "Pro", "ProProfileServices.cs");
+  const testingDocs = join(output, "docs", "testing.md");
 
   for (const forbidden of ["FakeAuthenticationHandler", "FakeAuthenticationDefaults", "X-Test-User-Id", "Aegis.Test"]) {
     assertNotContains(errors, program, forbidden, `${variant.id} production Program.cs must not wire fake authentication.`);
@@ -227,6 +228,9 @@ function assertP1DFeatureDepthSemantics(errors, output, variant) {
     assertNotContains(errors, packages, "Microsoft.Extensions.Http.Resilience", `${variant.id} core profile should not include HttpClient resilience package versions.`);
     assertNotContains(errors, apiProject, "Microsoft.Extensions.Http.Resilience", `${variant.id} core API project should not reference HttpClient resilience.`);
     assertNotContains(errors, solution, "IntegrationTests", `${variant.id} core solution should not include integration tests.`);
+    assertContains(errors, testingDocs, "## Core Profile", `${variant.id} generated testing docs should describe the core test surface.`);
+    assertNotContains(errors, testingDocs, `tests/${variant.name}.IntegrationTests`, `${variant.id} generated testing docs should not describe a missing integration test project.`);
+    assertNotContains(errors, testingDocs, "## Pro And Advanced Integration Tests", `${variant.id} generated testing docs should not include pro/advanced integration-test guidance.`);
     return;
   }
 
@@ -265,6 +269,10 @@ function assertP1DFeatureDepthSemantics(errors, output, variant) {
   assertContains(errors, resilientHttp, "AddHttpClient<SampleExternalStatusClient>", `${variant.id} should include a typed sample external client registration.`);
   assertContains(errors, resilientHttp, "https://example.invalid/", `${variant.id} sample external client should not depend on a real external API.`);
   assertContains(errors, proServices, "AddAegisOutboundHttpClients", `${variant.id} pro services should wire HttpClient resilience defaults.`);
+  assertContains(errors, testingDocs, `tests/${variant.name}.IntegrationTests`, `${variant.id} generated testing docs should name the generated integration test project.`);
+  assertContains(errors, testingDocs, "## Fake Authentication", `${variant.id} generated testing docs should include fake authentication test guidance.`);
+  assertContains(errors, testingDocs, "## HttpClient Resilience", `${variant.id} generated testing docs should include HttpClient resilience guidance.`);
+  assertNotContains(errors, testingDocs, "## Core Profile", `${variant.id} generated testing docs should not include the core-only section.`);
 }
 
 function assertAiSemantics(errors, output, variant) {
@@ -472,6 +480,30 @@ function assertNoTemplateTokens(errors, output, label) {
       if (content.includes(token)) {
         errors.push(`${label} contains unresolved template token ${token} in ${file}.`);
       }
+    }
+  }
+}
+
+function assertNoTemplateDirectives(errors, output, label) {
+  const checkedExtensions = [
+    ".cs",
+    ".csproj",
+    ".json",
+    ".props",
+    ".targets",
+    ".sln",
+    ".md",
+    ".txt",
+    ".yml",
+    ".yaml"
+  ];
+  const directivePattern = /^\s*(?:(?:\/\/|<!--)\s*)?#(?:if|else|elseif|elif|endif)\b/m;
+  const files = listFilesAbsolute(output, file => checkedExtensions.some(ext => file.endsWith(ext)));
+
+  for (const file of files) {
+    const content = readAbsolute(file);
+    if (directivePattern.test(content)) {
+      errors.push(`${label} contains an unresolved template conditional directive in ${file}.`);
     }
   }
 }
@@ -1027,6 +1059,7 @@ async function checkTemplateSmoke() {
     assertDocsSemantics(errors, output, variant);
     assertLicenseSemantics(errors, output, variant);
     assertArchitectureTestSemantics(errors, output, variant);
+    assertNoTemplateDirectives(errors, output, `${variant.id} generated output`);
 
     if (variant.id === "taskhub") {
       for (const moduleName of ["Projects", "Tasks", "Notifications", "Audit"]) {
@@ -1173,6 +1206,7 @@ async function checkTemplateSmoke() {
     assertItemSliceSemantics(errors, moduleRoot, variant);
     assertItemEventSemantics(errors, moduleRoot, variant);
     assertNoTemplateTokens(errors, moduleRoot, `${variant.id} item template output`);
+    assertNoTemplateDirectives(errors, moduleRoot, `${variant.id} item template output`);
   }
 
   const workerRoot = join(itemRoot, "worker");
@@ -1197,6 +1231,7 @@ async function checkTemplateSmoke() {
 
   assertItemWorkerSemantics(errors, workerRoot);
   assertNoTemplateTokens(errors, workerRoot, "worker item template output");
+  assertNoTemplateDirectives(errors, workerRoot, "worker item template output");
 
   return errors.length ? fail("template smoke", errors) : pass("template smoke");
 }
