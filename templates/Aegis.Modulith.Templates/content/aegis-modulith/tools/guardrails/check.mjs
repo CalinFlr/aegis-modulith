@@ -122,7 +122,7 @@ function checkAi() {
 
 function checkDocs() {
   const errors = [];
-  for (const path of ["README.md", "docs/getting-started.md", "docs/architecture.md", "docs/development.md", "docs/module-manifest.md"]) {
+  for (const path of ["README.md", "docs/getting-started.md", "docs/architecture.md", "docs/development.md", "docs/testing.md", "docs/module-manifest.md"]) {
     assertExists(errors, path, `docs output must include ${path}.`);
   }
 

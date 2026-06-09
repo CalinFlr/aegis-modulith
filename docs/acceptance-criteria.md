@@ -95,6 +95,17 @@
 - [x] `npm run template:smoke` asserts generated architecture test files, rule coverage markers, manifest-rule assertions, profile/mediator coverage, and absence of unresolved template tokens in architecture tests.
 - [x] `docs/architecture/vertical-slices.md` and `docs/architecture/cqrs-lite.md` exist and are linked from the architecture overview.
 
+## P1D-1 pro/advanced feature-depth foundation
+
+- [x] Generated pro and advanced profiles include a Testcontainers PostgreSQL integration test project and package references.
+- [x] Generated Testcontainers tests include a PostgreSQL container fixture, API test factory connection-string override, opt-in Docker fact, and database initialization placeholder for future migrations.
+- [x] Generated Testcontainers tests are skipped by default unless `AEGIS_RUN_TESTCONTAINERS=true` is set, so default smoke does not require Docker.
+- [x] Generated pro and advanced profiles include fake authentication test infrastructure with test users, role/scope headers, authenticated client helpers, and a fake-auth smoke test.
+- [x] Fake authentication is isolated to generated test projects and is not wired into production `Program.cs`.
+- [x] Generated pro and advanced profiles include Microsoft-first HttpClient resilience defaults through `Microsoft.Extensions.Http.Resilience`, default outbound client registration, and a typed placeholder client.
+- [x] Core profile excludes P1D-1 Testcontainers, fake-auth, and HttpClient resilience assets.
+- [x] `npm run template:smoke` asserts P1D-1 generated file/package/wiring semantics without requiring Docker.
+
 ## CI and guardrails
 
 - [x] `npm run check` passes.
