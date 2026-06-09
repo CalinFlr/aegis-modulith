@@ -83,6 +83,18 @@
 - [x] `aegis-worker` generates a `BackgroundService` worker with DI registration, logging, and cancellation-token usage.
 - [x] `npm run template:smoke` asserts item-template semantics and generated-solution compatibility for core/pro/advanced with core mediator and pro/advanced with MediatR.
 
+## P1C architecture-test expansion
+
+- [x] Generated architecture tests assert module boundary rules, including no cross-module Infrastructure namespace/project references and manifest-declared cross-module Contracts dependencies.
+- [x] Generated architecture tests assert module manifest required fields, boundary rule defaults, and declared public contract files.
+- [x] Generated architecture tests assert Domain source isolation from ASP.NET Core, EF Core, Npgsql, and Infrastructure usage at the file/namespace level.
+- [x] Generated architecture tests assert CQRS request/handler abstractions, MediatR compatibility when selected, query non-mutation, EF no-tracking query convention, and `Features/<SliceName>` slice placement.
+- [x] Generated architecture tests assert endpoint mapping conventions, including dispatcher delegation and no direct persistence calls.
+- [x] Generated architecture tests assert profile/mediator wiring for core, pro, advanced, core dispatcher, and MediatR variants.
+- [x] Generated architecture tests assert module-scoped DbContexts, manifest-aligned schemas, no generated FK configuration by default, and no cross-module domain/infrastructure namespace usage in persistence sources.
+- [x] `npm run template:smoke` asserts generated architecture test files, rule coverage markers, manifest-rule assertions, profile/mediator coverage, and absence of unresolved template tokens in architecture tests.
+- [x] `docs/architecture/vertical-slices.md` and `docs/architecture/cqrs-lite.md` exist and are linked from the architecture overview.
+
 ## CI and guardrails
 
 - [x] `npm run check` passes.

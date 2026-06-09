@@ -42,6 +42,13 @@
 - [x] `aegis-worker` output uses `BackgroundService`, DI registration, logging, and cancellation tokens.
 - [x] Smoke validates item-template outputs against generated core/pro/advanced and MediatR-compatible solutions.
 
+## P1C architecture-test expansion
+
+- [x] Generated architecture tests verify module boundary rules, manifest rules, Domain isolation, CQRS conventions, endpoint mapping discipline, profile/mediator wiring, and module persistence conventions.
+- [x] Generated architecture tests run as part of each generated smoke solution.
+- [x] Smoke asserts architecture test project/files, coverage markers, module manifest assertions, profile/mediator assertions, and no unresolved architecture-test template tokens.
+- [x] Architecture documentation includes focused CQRS-lite and vertical-slice rule pages.
+
 ## Documentation
 
 - [x] README includes golden path.
