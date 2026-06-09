@@ -7,6 +7,7 @@ using Aegis.Template.BuildingBlocks.Modules;
 using Aegis.Template.Modules.Modules.WorkItems.Features.CreateWorkItem;
 using Aegis.Template.Modules.Modules.WorkItems.Features.GetWorkItemById;
 using Aegis.Template.Modules.Modules.WorkItems.Infrastructure;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -35,6 +36,8 @@ public sealed class WorkItemsModule : IAegisModule
             var response = await dispatcher.Send(command, cancellationToken);
             return Results.Created($"/work-items/{response.Id}", response);
         }).WithName("CreateWorkItem")
+            .Accepts<CreateWorkItemCommand>("application/json")
+            .Produces<CreateWorkItemResponse>(StatusCodes.Status201Created)
 #if (profile != "core")
             .RequireAuthorization(AegisAuthorizationPolicies.WorkItemsWrite)
 #endif
@@ -45,6 +48,8 @@ public sealed class WorkItemsModule : IAegisModule
             var response = await dispatcher.Send(new GetWorkItemByIdQuery(id), cancellationToken);
             return response is null ? Results.NotFound() : Results.Ok(response);
         }).WithName("GetWorkItemById")
+            .Produces<GetWorkItemByIdResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
 #if (profile != "core")
             .RequireAuthorization(AegisAuthorizationPolicies.WorkItemsRead)
 #endif

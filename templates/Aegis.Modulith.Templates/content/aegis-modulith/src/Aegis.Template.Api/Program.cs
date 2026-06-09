@@ -5,6 +5,7 @@ using OpenTelemetry.Trace;
 
 #if (profile != "core")
 using Aegis.Template.Api.Pro;
+using Aegis.Template.Api.Pro.Auth;
 using Aegis.Template.ServiceDefaults;
 #endif
 
@@ -14,7 +15,11 @@ using Aegis.Template.Api.Advanced;
 
 var builder = WebApplication.CreateBuilder(args);
 
+#if (profile != "core")
+builder.Services.AddAegisOpenApi();
+#else
 builder.Services.AddOpenApi();
+#endif
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
 builder.Services.AddOpenTelemetry()
@@ -49,7 +54,8 @@ app.MapGet("/", () => Results.Ok(new
     profile = "AegisProfileValue",
     mediator = "AegisMediatorValue",
     sample = "AegisSampleValue"
-})).WithName("GetApplicationInfo");
+})).WithName("GetApplicationInfo")
+    .Produces(StatusCodes.Status200OK);
 
 app.MapAegisModules();
 

@@ -18,6 +18,7 @@ public static class AdvancedProfileServices
             tenancy = "skeleton",
             deployment = "ready"
         })).WithName("GetAdvancedProfileStatus")
+            .Produces(StatusCodes.Status200OK)
             .RequireAuthorization(Aegis.Template.BuildingBlocks.Authorization.AegisAuthorizationPolicies.AdvancedRead);
 
         return endpoints;

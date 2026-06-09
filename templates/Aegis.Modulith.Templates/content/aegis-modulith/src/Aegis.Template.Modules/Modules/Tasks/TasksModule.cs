@@ -7,6 +7,7 @@ using Aegis.Template.BuildingBlocks.Modules;
 using Aegis.Template.Modules.Modules.Tasks.Features.CreateTask;
 using Aegis.Template.Modules.Modules.Tasks.Features.ListTasks;
 using Aegis.Template.Modules.Modules.Tasks.Infrastructure;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -35,6 +36,8 @@ public sealed class TasksModule : IAegisModule
             var response = await dispatcher.Send(command, cancellationToken);
             return Results.Created($"/tasks/{response.Id}", response);
         }).WithName("CreateTask")
+            .Accepts<CreateTaskCommand>("application/json")
+            .Produces<CreateTaskResponse>(StatusCodes.Status201Created)
 #if (profile != "core")
             .RequireAuthorization(AegisAuthorizationPolicies.TasksWrite)
 #endif
@@ -45,6 +48,7 @@ public sealed class TasksModule : IAegisModule
             var response = await dispatcher.Send(new ListTasksQuery(), cancellationToken);
             return Results.Ok(response);
         }).WithName("ListTasks")
+            .Produces<ListTasksResponse>(StatusCodes.Status200OK)
 #if (profile != "core")
             .RequireAuthorization(AegisAuthorizationPolicies.TasksRead)
 #endif
