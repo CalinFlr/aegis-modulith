@@ -178,7 +178,7 @@ function assertProfileSemantics(errors, output, variant) {
   assertContains(errors, solution, "AppHost", `${variant.id} solution should reference AppHost.`);
   assertContains(errors, solution, "ServiceDefaults", `${variant.id} solution should reference ServiceDefaults.`);
   assertContains(errors, program, "builder.AddServiceDefaults();", `${variant.id} Program.cs should wire ServiceDefaults.`);
-  assertContains(errors, program, "builder.Services.AddProProfileServices();", `${variant.id} Program.cs should register pro services.`);
+  assertContains(errors, program, "builder.Services.AddProProfileServices(builder.Configuration);", `${variant.id} Program.cs should register pro services.`);
   assertContains(errors, program, "app.UseRateLimiter();", `${variant.id} Program.cs should enable rate limiting middleware.`);
   assertContains(errors, program, "app.MapProProfileEndpoints();", `${variant.id} Program.cs should map pro endpoints.`);
 
@@ -273,6 +273,97 @@ function assertP1DFeatureDepthSemantics(errors, output, variant) {
   assertContains(errors, testingDocs, "## Fake Authentication", `${variant.id} generated testing docs should include fake authentication test guidance.`);
   assertContains(errors, testingDocs, "## HttpClient Resilience", `${variant.id} generated testing docs should include HttpClient resilience guidance.`);
   assertNotContains(errors, testingDocs, "## Core Profile", `${variant.id} generated testing docs should not include the core-only section.`);
+}
+
+function assertP1D2AAuthPermissionSemantics(errors, output, variant) {
+  const packages = join(output, "Directory.Packages.props");
+  const program = join(output, "src", `${variant.name}.Api`, "Program.cs");
+  const apiProject = join(output, "src", `${variant.name}.Api`, `${variant.name}.Api.csproj`);
+  const proAuthRoot = join(output, "src", `${variant.name}.Api`, "Pro", "Auth");
+  const jwtOptions = join(proAuthRoot, "AegisJwtOptions.cs");
+  const jwtRegistration = join(proAuthRoot, "AegisJwtAuthenticationServiceCollectionExtensions.cs");
+  const permissionRegistration = join(proAuthRoot, "AegisPermissionPolicyServiceCollectionExtensions.cs");
+  const permissionConstants = join(output, "src", `${variant.name}.BuildingBlocks`, "Authorization", "AegisPermissions.cs");
+  const policyConstants = join(output, "src", `${variant.name}.BuildingBlocks`, "Authorization", "AegisAuthorizationPolicies.cs");
+  const claimTypes = join(output, "src", `${variant.name}.BuildingBlocks`, "Authorization", "AegisPermissionClaimTypes.cs");
+  const proServices = join(output, "src", `${variant.name}.Api`, "Pro", "ProProfileServices.cs");
+  const advancedServices = join(output, "src", `${variant.name}.Api`, "Advanced", "AdvancedProfileServices.cs");
+  const workItemsModule = join(output, "src", `${variant.name}.Modules`, "Modules", "WorkItems", "WorkItemsModule.cs");
+  const tasksModule = join(output, "src", `${variant.name}.Modules`, "Modules", "Tasks", "TasksModule.cs");
+  const integrationRoot = join(output, "tests", `${variant.name}.IntegrationTests`);
+  const fakeAuthDefaults = join(integrationRoot, "Authentication", "FakeAuthenticationDefaults.cs");
+  const fakeAuthHandler = join(integrationRoot, "Authentication", "FakeAuthenticationHandler.cs");
+  const authenticatedClientExtensions = join(integrationRoot, "Authentication", "AuthenticatedClientExtensions.cs");
+  const permissionAuthorizationTests = join(integrationRoot, "PermissionAuthorizationTests.cs");
+
+  if (variant.profile === "core") {
+    assertMissing(errors, proAuthRoot, `${variant.id} core profile should not include pro JWT/auth registration assets.`);
+    assertNotContains(errors, packages, "Microsoft.AspNetCore.Authentication.JwtBearer", `${variant.id} core profile should not include JWT bearer package versions.`);
+    assertNotContains(errors, apiProject, "Microsoft.AspNetCore.Authentication.JwtBearer", `${variant.id} core API project should not reference JWT bearer.`);
+    assertNotContains(errors, program, "UseAuthentication", `${variant.id} core Program.cs should not wire authentication middleware.`);
+    assertNotContains(errors, program, "UseAuthorization", `${variant.id} core Program.cs should not wire authorization middleware.`);
+    assertNotContains(errors, workItemsModule, "RequireAuthorization", `${variant.id} core starter module should not require pro/advanced policies.`);
+    assertExists(errors, permissionConstants, `${variant.id} core output should keep only minimal shared permission constants.`);
+    assertMissing(errors, join(output, "src", `${variant.name}.Api`, "Advanced", "Permissions"), `${variant.id} core profile should not include advanced permission placeholders.`);
+    return;
+  }
+
+  assertContains(errors, packages, "Microsoft.AspNetCore.Authentication.JwtBearer", `${variant.id} should include JWT bearer package version.`);
+  assertContains(errors, apiProject, "Microsoft.AspNetCore.Authentication.JwtBearer", `${variant.id} API project should reference JWT bearer.`);
+  assertExists(errors, jwtOptions, `${variant.id} should include strongly typed JWT options.`);
+  assertContains(errors, jwtOptions, "SectionName = \"Authentication:Jwt\"", `${variant.id} JWT options should name the configuration section.`);
+  assertContains(errors, jwtOptions, "Issuer", `${variant.id} JWT options should include issuer configuration.`);
+  assertContains(errors, jwtOptions, "Audience", `${variant.id} JWT options should include audience configuration.`);
+  assertContains(errors, jwtOptions, "SigningKey", `${variant.id} JWT options should include signing-key configuration.`);
+  assertContains(errors, jwtRegistration, "AddJwtBearer", `${variant.id} should register JWT bearer authentication.`);
+  assertContains(errors, jwtRegistration, "CreateRejectAllValidationParameters", `${variant.id} missing JWT config should reject tokens by default.`);
+  assertContains(errors, jwtRegistration, "RandomNumberGenerator.GetBytes", `${variant.id} reject-all JWT validation should not use a hardcoded signing key.`);
+  assertContains(errors, jwtRegistration, "RequireSignedTokens = true", `${variant.id} JWT validation should require signed tokens.`);
+  assertContains(errors, proServices, "AddAegisJwtAuthentication(configuration)", `${variant.id} pro services should wire JWT authentication.`);
+
+  if (existsSync(program)) {
+    const content = readAbsolute(program);
+    const authIndex = content.indexOf("app.UseAuthentication();");
+    const authzIndex = content.indexOf("app.UseAuthorization();");
+    if (authIndex === -1 || authzIndex === -1 || authIndex > authzIndex) {
+      errors.push(`${variant.id} Program.cs should call UseAuthentication before UseAuthorization.`);
+    }
+  }
+
+  assertExists(errors, permissionConstants, `${variant.id} should include permission constants.`);
+  assertExists(errors, policyConstants, `${variant.id} should include authorization policy constants.`);
+  assertExists(errors, claimTypes, `${variant.id} should include permission claim-type constants.`);
+  assertContains(errors, permissionConstants, "TasksRead = \"tasks:read\"", `${variant.id} should include TaskHub task read permission.`);
+  assertContains(errors, permissionConstants, "TasksWrite = \"tasks:write\"", `${variant.id} should include TaskHub task write permission.`);
+  assertContains(errors, permissionRegistration, "AddAegisPermissionPolicies", `${variant.id} should include permission policy registration.`);
+  assertContains(errors, permissionRegistration, "AegisPermissionClaimTypes.Permission", `${variant.id} permission policies should use permission claims.`);
+  assertContains(errors, permissionRegistration, "AegisPermissionClaimTypes.Scope", `${variant.id} permission policies should accept scope claims for compatibility.`);
+  assertContains(errors, proServices, "AddAegisPermissionPolicies", `${variant.id} pro services should wire permission policies.`);
+  assertContains(errors, proServices, "RequireAuthorization", `${variant.id} should protect at least one pro endpoint.`);
+  assertContains(errors, proServices, "AegisAuthorizationPolicies.OperationsRead", `${variant.id} should protect at least one pro endpoint with a named policy.`);
+
+  if (variant.sample === "taskhub") {
+    assertContains(errors, tasksModule, "RequireAuthorization(AegisAuthorizationPolicies.TasksRead)", `${variant.id} TaskHub list endpoint should require task read permission.`);
+    assertContains(errors, tasksModule, "RequireAuthorization(AegisAuthorizationPolicies.TasksWrite)", `${variant.id} TaskHub create endpoint should require task write permission.`);
+  } else {
+    assertContains(errors, workItemsModule, "RequireAuthorization(AegisAuthorizationPolicies.WorkItemsRead)", `${variant.id} starter read endpoint should require work-item read permission.`);
+    assertContains(errors, workItemsModule, "RequireAuthorization(AegisAuthorizationPolicies.WorkItemsWrite)", `${variant.id} starter write endpoint should require work-item write permission.`);
+  }
+
+  if (variant.profile === "advanced") {
+    assertContains(errors, advancedServices, "RequireAuthorization", `${variant.id} advanced endpoint should require authorization.`);
+    assertContains(errors, advancedServices, "AegisAuthorizationPolicies.AdvancedRead", `${variant.id} advanced endpoint should require a named advanced policy.`);
+  }
+
+  for (const forbidden of ["FakeAuthenticationHandler", "FakeAuthenticationDefaults", "X-Test-Permissions", "Aegis.Test"]) {
+    assertNotContains(errors, program, forbidden, `${variant.id} production Program.cs must not wire fake authentication.`);
+  }
+
+  assertContains(errors, fakeAuthDefaults, "X-Test-Permissions", `${variant.id} fake auth should include permission headers for tests.`);
+  assertContains(errors, fakeAuthHandler, "PermissionClaimType", `${variant.id} fake auth should emit permission claims.`);
+  assertContains(errors, authenticatedClientExtensions, "AuthenticateWithPermissions", `${variant.id} should include permission-aware authenticated client helpers.`);
+  assertContains(errors, permissionAuthorizationTests, "Request_with_required_permission_can_access_protected_endpoint", `${variant.id} should prove authorized permission requests pass.`);
+  assertContains(errors, permissionAuthorizationTests, "Request_without_required_permission_is_forbidden", `${variant.id} should prove missing permissions are rejected.`);
 }
 
 function assertAiSemantics(errors, output, variant) {
@@ -1052,6 +1143,7 @@ async function checkTemplateSmoke() {
     assertMediatorSemantics(errors, output, variant);
     assertProfileSemantics(errors, output, variant);
     assertP1DFeatureDepthSemantics(errors, output, variant);
+    assertP1D2AAuthPermissionSemantics(errors, output, variant);
     assertAiSemantics(errors, output, variant);
     assertGuardrailSemantics(errors, output, variant);
     assertHookSemantics(errors, output, variant);
