@@ -129,6 +129,17 @@
 - [x] Core profile excludes active inbox infrastructure and generated inbox tests.
 - [x] `npm run template:smoke` asserts P1D-2B generated semantics without requiring a broker or Docker.
 
+## P1D-3A generated contract tests
+
+- [x] Generated pro and advanced profiles include `tests/<App>.ContractTests` in the generated solution.
+- [x] Generated API contract tests verify OpenAPI production, expected routes and methods, declared content types, declared response status codes, JWT bearer OpenAPI metadata, named permission policy metadata, and fake-auth exclusion from the production API contract.
+- [x] Generated API contract tests cover starter endpoints and TaskHub endpoints where selected.
+- [x] Generated integration event contract tests verify `System.Text.Json` round trips, integration event type/version metadata, contract-folder placement, and domain/integration event separation.
+- [x] Generated inbox contract tests verify payload serialization, `MessageId`, `IdempotencyKey`, message type, and no broker or exactly-once broker guarantee dependency.
+- [x] Generated architecture tests assert production projects do not reference contract tests and integration contracts do not depend on infrastructure.
+- [x] Core profile excludes the pro/advanced contract test project and documents the exclusion.
+- [x] `npm run template:smoke` asserts P1D-3A generated semantics without requiring Docker, a broker, an external identity provider, or external services.
+
 ## CI and guardrails
 
 - [x] `npm run check` passes.

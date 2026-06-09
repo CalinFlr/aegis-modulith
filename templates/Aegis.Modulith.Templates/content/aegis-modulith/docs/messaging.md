@@ -25,6 +25,8 @@ The generated inbox uses `AegisInboxDbContext`, `InboxMessage`, EF Core configur
 
 Inbox payloads are serialized integration event messages. Do not store Domain entities as inbox payloads.
 
+Generated integration event records declare `IntegrationEventContractAttribute` with a stable type name and positive integer version. The sample inbox handler uses that metadata as its `MessageType`. This is a contract-testing convention, not event sourcing.
+
 ## Processor Execution
 
 The generated `InboxProcessor` dispatches pending rows to registered `IInboxMessageHandler` implementations. The sample handler uses generated integration event contracts from module `Contracts` folders.
@@ -52,4 +54,6 @@ Handler failures mark the row `Failed` and store `FailureReason`. The simple pro
 Generated inbox tests live under `tests/Aegis.Template.IntegrationTests/Inbox`.
 
 They prove first-message acceptance, duplicate detection, processed-message idempotency, failure state, and single handler invocation for duplicate inputs. These tests use EF InMemory and do not require Docker.
+
+Generated contract tests also verify integration event serialization, event type/version metadata, inbox payload identity fields, and the absence of broker dependencies or exactly-once broker guarantees.
 #endif

@@ -59,6 +59,12 @@ The integration test project uses fake authentication instead of issuing real JW
 The fake auth handler is generated only under `tests/Aegis.Template.IntegrationTests`. Production `Program.cs` does not wire the fake scheme.
 
 Test clients can provide roles, scopes, and permissions through `X-Test-*` headers, including `X-Test-Permissions`, so permission policies can be tested without an external identity provider.
+
+## Contract Checks
+
+Generated contract tests assert that permission policy constants are registered as named policies and that protected endpoints expose those named policies in endpoint metadata.
+
+They also assert that OpenAPI exposes JWT bearer security metadata and that fake-auth headers and the `Aegis.Test` scheme are not part of the production API contract.
 #else
 The core profile does not include JWT bearer authentication, auth middleware, policy registration, fake auth, or generated integration tests.
 

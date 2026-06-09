@@ -11,6 +11,7 @@ Focused rule docs:
 - [Module manifests](architecture/module-manifest.md)
 - [Authentication and permissions](authentication.md)
 - [Messaging and inbox](messaging.md)
+- [Contracts and contract tests](contracts.md)
 
 ## Modular monolith
 

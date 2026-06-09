@@ -21,7 +21,7 @@ npm run check
 #if (profile != "core")
 ## Pro And Advanced Integration Tests
 
-This profile includes `tests/Aegis.Template.IntegrationTests`.
+This profile includes `tests/Aegis.Template.IntegrationTests` and `tests/Aegis.Template.ContractTests`.
 
 That test project contains:
 
@@ -58,6 +58,14 @@ Generated permission-policy tests use fake auth to prove that a request with the
 Generated inbox behavior tests live under `tests/Aegis.Template.IntegrationTests/Inbox`.
 
 They use EF InMemory and prove first acceptance, duplicate detection, processed-message idempotency, failure state, and single handler invocation for duplicate inputs. They do not require Docker or a message broker.
+
+## Contract Tests
+
+Generated contract tests live under `tests/Aegis.Template.ContractTests`.
+
+They use semantic assertions over endpoint metadata, OpenAPI JSON, integration event metadata, and JSON round trips. They verify routes, methods, declared status codes, declared content types, JWT bearer OpenAPI metadata, named permission policies, fake-auth isolation, integration event type/version metadata, domain/integration event separation, and inbox payload identity fields.
+
+These tests are not performance smoke tests. They do not require Docker, a broker, an external identity provider, real JWT issuance, or external services.
 
 ## HttpClient Resilience
 
