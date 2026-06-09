@@ -40,6 +40,21 @@ function listFiles(dir, predicate = () => true) {
   return out;
 }
 
+function listFilesAbsolute(dir, predicate = () => true) {
+  if (!existsSync(dir)) return [];
+  const out = [];
+  function walk(current) {
+    for (const entry of readdirSync(current)) {
+      const full = join(current, entry);
+      const st = statSync(full);
+      if (st.isDirectory()) walk(full);
+      else if (predicate(full)) out.push(full);
+    }
+  }
+  walk(dir);
+  return out;
+}
+
 async function runCommand(command, args, options = {}) {
   return new Promise((resolve) => {
     const child = spawn(command, args, {
@@ -355,6 +370,169 @@ function assertLicenseSemantics(errors, output, variant) {
   if (existsSync(packageJson)) {
     assertContains(errors, packageJson, `"license": "${variant.licenseExpression}"`, `${variant.id} package metadata should report ${variant.licenseExpression}.`);
   }
+}
+
+function assertNoTemplateTokens(errors, output, label) {
+  const tokens = [
+    "AegisItemRootNamespace",
+    "AegisBuildingBlocksNamespace",
+    "AegisSliceModule",
+    "AegisEventModule",
+    "AegisWorkerModule",
+    "aegis_module_schema",
+    "aegis_module_owner",
+    "aegis_building_blocks_project",
+    "Aegis.Module",
+    "Aegis.Slice",
+    "Aegis.Event",
+    "Aegis.Worker",
+    "AegisSliceKind",
+    "AegisEventScope"
+  ];
+  const checkedExtensions = [".cs", ".csproj", ".json", ".props", ".md"];
+  const files = listFilesAbsolute(output, file => checkedExtensions.some(ext => file.endsWith(ext)));
+
+  for (const file of files) {
+    const content = readAbsolute(file);
+    for (const token of tokens) {
+      if (content.includes(token)) {
+        errors.push(`${label} contains unresolved template token ${token} in ${file}.`);
+      }
+    }
+  }
+}
+
+function assertItemModuleSemantics(errors, moduleRoot, variant) {
+  const moduleProject = join(moduleRoot, "Billing.csproj");
+  const moduleClass = join(moduleRoot, "BillingModule.cs");
+  const manifestPath = join(moduleRoot, "module.json");
+  const dbContext = join(moduleRoot, "Infrastructure", "BillingDbContext.cs");
+  const serviceRegistration = join(moduleRoot, "Infrastructure", "BillingServiceCollectionExtensions.cs");
+  const domainEntity = join(moduleRoot, "Domain", "BillingEntity.cs");
+  const contracts = join(moduleRoot, "Contracts", "BillingContracts.cs");
+  const featuresPlaceholder = join(moduleRoot, "Features", ".gitkeep");
+  const migrationsPlaceholder = join(moduleRoot, "Infrastructure", "Migrations", ".gitkeep");
+
+  for (const [path, description] of [
+    [moduleProject, "module project file"],
+    [moduleClass, "module composition entry point"],
+    [manifestPath, "module manifest"],
+    [dbContext, "module DbContext"],
+    [serviceRegistration, "module service registration extension"],
+    [domainEntity, "domain folder content"],
+    [contracts, "contracts folder content"],
+    [featuresPlaceholder, "features folder placeholder"],
+    [migrationsPlaceholder, "migrations folder placeholder"]
+  ]) {
+    assertExists(errors, path, `${variant.id} Billing item missing ${description}.`);
+  }
+
+  assertContains(errors, moduleProject, `<RootNamespace>${variant.name}.Modules.Modules.Billing</RootNamespace>`, `${variant.id} module item should use the generated module namespace shape.`);
+  assertContains(errors, moduleProject, `${variant.name}.BuildingBlocks/${variant.name}.BuildingBlocks.csproj`, `${variant.id} module item should reference generated BuildingBlocks project.`);
+  assertContains(errors, moduleClass, `namespace ${variant.name}.Modules.Modules.Billing;`, `${variant.id} module class should use generated namespace.`);
+  assertContains(errors, moduleClass, "class BillingModule : IAegisModule", `${variant.id} module class should implement IAegisModule.`);
+  assertContains(errors, moduleClass, "services.AddBillingInfrastructure(configuration);", `${variant.id} module class should call module service registration.`);
+  assertContains(errors, moduleClass, "endpoints.MapGroup(\"/billing\")", `${variant.id} module class should map a module route group from schema.`);
+  assertContains(errors, dbContext, ": DbContext", `${variant.id} module DbContext should derive from DbContext.`);
+  assertContains(errors, dbContext, "DbSet<BillingEntity>", `${variant.id} module DbContext should expose a module DbSet.`);
+  assertContains(errors, dbContext, "modelBuilder.HasDefaultSchema(Schema)", `${variant.id} module DbContext should set the module schema.`);
+  assertContains(errors, serviceRegistration, "UseNpgsql", `${variant.id} module service registration should configure PostgreSQL.`);
+
+  try {
+    const manifest = JSON.parse(readAbsolute(manifestPath));
+    for (const property of ["name", "schema", "type", "owner", "dependencies", "publicContracts", "features", "rules"]) {
+      if (!(property in manifest)) errors.push(`${variant.id} Billing module manifest missing ${property}.`);
+    }
+    if (manifest.name !== "Billing") errors.push(`${variant.id} Billing module manifest should record name Billing.`);
+    if (manifest.schema !== "billing") errors.push(`${variant.id} Billing module manifest should record schema billing.`);
+    if (manifest.type !== "business-module") errors.push(`${variant.id} Billing module manifest should be a business-module.`);
+    if (manifest.rules?.allowCrossModuleDatabaseAccess !== false) errors.push(`${variant.id} Billing module manifest should disallow cross-module database access.`);
+    if (manifest.rules?.allowInfrastructureReferences !== false) errors.push(`${variant.id} Billing module manifest should disallow infrastructure references.`);
+  } catch (error) {
+    errors.push(`${variant.id} Billing module manifest is not valid JSON: ${error.message}`);
+  }
+}
+
+function assertItemSliceSemantics(errors, moduleRoot, variant) {
+  const commandRoot = join(moduleRoot, "Features", "CreateInvoice");
+  const queryRoot = join(moduleRoot, "Features", "ListInvoices");
+  const command = join(commandRoot, "CreateInvoiceCommand.cs");
+  const commandHandler = join(commandRoot, "CreateInvoiceCommandHandler.cs");
+  const commandEndpoint = join(commandRoot, "CreateInvoiceCommandEndpoint.cs");
+  const commandValidator = join(commandRoot, "CreateInvoiceCommandValidator.cs");
+  const commandResponse = join(commandRoot, "CreateInvoiceResponse.cs");
+  const query = join(queryRoot, "ListInvoicesQuery.cs");
+  const queryHandler = join(queryRoot, "ListInvoicesQueryHandler.cs");
+  const queryEndpoint = join(queryRoot, "ListInvoicesQueryEndpoint.cs");
+  const queryResponse = join(queryRoot, "ListInvoicesResponse.cs");
+
+  for (const path of [command, commandHandler, commandEndpoint, commandValidator, commandResponse, query, queryHandler, queryEndpoint, queryResponse]) {
+    assertExists(errors, path, `${variant.id} slice item missing ${path}.`);
+  }
+
+  assertContains(errors, command, `namespace ${variant.name}.Modules.Modules.Billing.Features.CreateInvoice;`, `${variant.id} command slice should use module feature namespace.`);
+  assertContains(errors, command, "ICommand<CreateInvoiceResponse>", `${variant.id} command slice should implement ICommand<TResponse>.`);
+  assertContains(errors, commandHandler, "ICommandHandler<CreateInvoiceCommand, CreateInvoiceResponse>", `${variant.id} command handler should implement generated command handler contract.`);
+  assertContains(errors, commandEndpoint, "ICommandDispatcher", `${variant.id} command endpoint should dispatch through ICommandDispatcher.`);
+  assertContains(errors, commandValidator, "IValidator<CreateInvoiceCommand>", `${variant.id} command slice should include validation convention.`);
+  assertContains(errors, commandHandler, "handler tests", `${variant.id} command slice should document the test next step.`);
+
+  assertContains(errors, query, `namespace ${variant.name}.Modules.Modules.Billing.Features.ListInvoices;`, `${variant.id} query slice should use module feature namespace.`);
+  assertContains(errors, query, "IQuery<ListInvoicesResponse>", `${variant.id} query slice should implement IQuery<TResponse>.`);
+  assertContains(errors, query, "PageNumber", `${variant.id} list query should include PageNumber.`);
+  assertContains(errors, query, "PageSize", `${variant.id} list query should include PageSize.`);
+  assertContains(errors, queryHandler, "IQueryHandler<ListInvoicesQuery, ListInvoicesResponse>", `${variant.id} query handler should implement generated query handler contract.`);
+  assertContains(errors, queryEndpoint, "IQueryDispatcher", `${variant.id} query endpoint should dispatch through IQueryDispatcher.`);
+  assertContains(errors, queryEndpoint, "[AsParameters] ListInvoicesQuery query", `${variant.id} list query endpoint should bind pagination shape.`);
+  assertContains(errors, queryResponse, "IReadOnlyList<ListInvoicesItemResponse>", `${variant.id} list query response should include paged item shape.`);
+  assertContains(errors, queryHandler, "handler tests", `${variant.id} query slice should document the test next step.`);
+
+  if (variant.mediator === "mediatr") {
+    assertContains(errors, command, "MediatR.IRequest<CreateInvoiceResponse>", `${variant.id} MediatR command slice should implement IRequest.`);
+    assertContains(errors, commandHandler, "MediatR.IRequestHandler<CreateInvoiceCommand, CreateInvoiceResponse>", `${variant.id} MediatR command handler should implement IRequestHandler.`);
+    assertContains(errors, query, "MediatR.IRequest<ListInvoicesResponse>", `${variant.id} MediatR query slice should implement IRequest.`);
+    assertContains(errors, queryHandler, "MediatR.IRequestHandler<ListInvoicesQuery, ListInvoicesResponse>", `${variant.id} MediatR query handler should implement IRequestHandler.`);
+  } else {
+    assertNotContains(errors, command, "MediatR.IRequest", `${variant.id} core command slice should not reference MediatR.`);
+    assertNotContains(errors, commandHandler, "MediatR.IRequestHandler", `${variant.id} core command handler should not reference MediatR.`);
+    assertNotContains(errors, query, "MediatR.IRequest", `${variant.id} core query slice should not reference MediatR.`);
+    assertNotContains(errors, queryHandler, "MediatR.IRequestHandler", `${variant.id} core query handler should not reference MediatR.`);
+  }
+}
+
+function assertItemEventSemantics(errors, moduleRoot, variant) {
+  const domainEvent = join(moduleRoot, "Domain", "Events", "InvoiceIssuedDomainEvent.cs");
+  const integrationEvent = join(moduleRoot, "Contracts", "IntegrationEvents", "InvoiceIssuedIntegrationEvent.cs");
+
+  assertExists(errors, domainEvent, `${variant.id} domain event item should be generated under Domain/Events.`);
+  assertExists(errors, integrationEvent, `${variant.id} integration event item should be generated under Contracts/IntegrationEvents.`);
+  assertContains(errors, domainEvent, `namespace ${variant.name}.Modules.Modules.Billing.Domain.Events;`, `${variant.id} domain event should use domain event namespace.`);
+  assertContains(errors, domainEvent, ": DomainEvent", `${variant.id} domain event should use DomainEvent abstraction.`);
+  assertNotContains(errors, domainEvent, "IntegrationEvent", `${variant.id} domain event should not use IntegrationEvent abstraction.`);
+  assertContains(errors, integrationEvent, `namespace ${variant.name}.Modules.Modules.Billing.Contracts.IntegrationEvents;`, `${variant.id} integration event should use integration event namespace.`);
+  assertContains(errors, integrationEvent, ": IntegrationEvent", `${variant.id} integration event should use IntegrationEvent abstraction.`);
+  assertNotContains(errors, integrationEvent, "DomainEvent", `${variant.id} integration event should not use DomainEvent abstraction.`);
+
+  if (existsSync(domainEvent) && existsSync(integrationEvent) && readAbsolute(domainEvent) === readAbsolute(integrationEvent)) {
+    errors.push(`${variant.id} domain and integration event outputs should be distinct.`);
+  }
+}
+
+function assertItemWorkerSemantics(errors, workerRoot) {
+  const worker = join(workerRoot, "BillingOutboxDispatcher.cs");
+  const services = join(workerRoot, "BillingOutboxDispatcherServiceCollectionExtensions.cs");
+  const program = join(workerRoot, "Program.cs");
+
+  assertExists(errors, worker, "worker item should generate a worker class named after the item.");
+  assertExists(errors, services, "worker item should generate a DI registration extension.");
+  assertContains(errors, worker, "class BillingOutboxDispatcher", "worker item should name the BackgroundService after the requested worker.");
+  assertContains(errors, worker, ": BackgroundService", "worker item should derive from BackgroundService.");
+  assertContains(errors, worker, "ILogger<BillingOutboxDispatcher>", "worker item should use logging.");
+  assertContains(errors, worker, "CancellationToken stoppingToken", "worker item should accept a cancellation token.");
+  assertContains(errors, worker, "stoppingToken.IsCancellationRequested", "worker item should observe cancellation.");
+  assertContains(errors, worker, "Task.Delay(TimeSpan.FromMinutes(5), stoppingToken)", "worker item should pass the cancellation token to delay.");
+  assertContains(errors, services, "AddHostedService<BillingOutboxDispatcher>", "worker item should register as a hosted service.");
+  assertContains(errors, program, "builder.Services.AddBillingOutboxDispatcher();", "worker Program.cs should use the registration extension.");
 }
 
 async function checkAi() {
@@ -715,50 +893,142 @@ async function checkTemplateSmoke() {
     }
   }
 
-  const itemChecks = [
-    {
-      id: "module",
-      args: ["new", "aegis-module", "-n", "Billing", "--schema", "billing", "-o", join(itemRoot, "module")],
-      project: join(itemRoot, "module", "Billing.csproj"),
-      required: [join(itemRoot, "module", "module.json")]
-    },
-    {
-      id: "slice",
-      args: ["new", "aegis-slice", "-n", "CreateInvoice", "--module", "Billing", "--kind", "command", "-o", join(itemRoot, "slice")],
-      required: [join(itemRoot, "slice", "CreateInvoiceHandler.cs")]
-    },
-    {
-      id: "event",
-      args: ["new", "aegis-event", "-n", "InvoiceIssued", "--module", "Billing", "--scope", "integration", "-o", join(itemRoot, "event")],
-      required: [join(itemRoot, "event", "InvoiceIssued.cs")]
-    },
-    {
-      id: "worker",
-      args: ["new", "aegis-worker", "-n", "BillingOutboxDispatcher", "--module", "Billing", "-o", join(itemRoot, "worker")],
-      project: join(itemRoot, "worker", "BillingOutboxDispatcher.csproj"),
-      required: [join(itemRoot, "worker", "Worker.cs")]
-    }
-  ];
+  const itemCompatibilityIds = new Set(["core-core", "pro-core", "advanced-core", "pro-mediatr", "advanced-mediatr"]);
+  const itemCompatibilityVariants = matrix.filter(variant => itemCompatibilityIds.has(variant.id));
 
-  for (const item of itemChecks) {
-    code = await runCommand("dotnet", item.args, { env: smokeEnv });
+  for (const variant of itemCompatibilityVariants) {
+    const output = join(generatedRoot, variant.id);
+    const moduleRoot = join(output, "src", `${variant.name}.Modules`, "Modules", "Billing");
+    const moduleNamespace = `${variant.name}.Modules`;
+    const buildingBlocksNamespace = `${variant.name}.BuildingBlocks`;
+    const buildingBlocksProject = `../../../${variant.name}.BuildingBlocks/${variant.name}.BuildingBlocks.csproj`;
+
+    code = await runCommand("dotnet", [
+      "new",
+      "aegis-module",
+      "-n",
+      "Billing",
+      "--schema",
+      "billing",
+      "--rootNamespace",
+      moduleNamespace,
+      "--buildingBlocksNamespace",
+      buildingBlocksNamespace,
+      "--buildingBlocksProject",
+      buildingBlocksProject,
+      "-o",
+      moduleRoot
+    ], { env: smokeEnv });
     if (code !== 0) {
-      return fail("template smoke", [`Item template generation failed for ${item.id}.`]);
+      return fail("template smoke", [`aegis-module generation failed for ${variant.id}.`]);
     }
 
-    for (const required of item.required) {
-      if (!existsSync(required)) {
-        errors.push(`${item.id} item missing ${required}.`);
-      }
+    code = await runCommand("dotnet", [
+      "new",
+      "aegis-slice",
+      "-n",
+      "CreateInvoice",
+      "--module",
+      "Billing",
+      "--kind",
+      "command",
+      "--mediator",
+      variant.mediator,
+      "--rootNamespace",
+      moduleNamespace,
+      "--buildingBlocksNamespace",
+      buildingBlocksNamespace,
+      "-o",
+      moduleRoot
+    ], { env: smokeEnv });
+    if (code !== 0) {
+      return fail("template smoke", [`aegis-slice command generation failed for ${variant.id}.`]);
     }
 
-    if (item.project) {
-      code = await runCommand("dotnet", ["build", item.project, "-c", "Release"], { env: smokeEnv });
+    code = await runCommand("dotnet", [
+      "new",
+      "aegis-slice",
+      "-n",
+      "ListInvoices",
+      "--module",
+      "Billing",
+      "--kind",
+      "query",
+      "--paged",
+      "true",
+      "--mediator",
+      variant.mediator,
+      "--rootNamespace",
+      moduleNamespace,
+      "--buildingBlocksNamespace",
+      buildingBlocksNamespace,
+      "-o",
+      moduleRoot
+    ], { env: smokeEnv });
+    if (code !== 0) {
+      return fail("template smoke", [`aegis-slice query generation failed for ${variant.id}.`]);
+    }
+
+    for (const scope of ["domain", "integration"]) {
+      code = await runCommand("dotnet", [
+        "new",
+        "aegis-event",
+        "-n",
+        "InvoiceIssued",
+        "--module",
+        "Billing",
+        "--scope",
+        scope,
+        "--rootNamespace",
+        moduleNamespace,
+        "--buildingBlocksNamespace",
+        buildingBlocksNamespace,
+        "-o",
+        moduleRoot
+      ], { env: smokeEnv });
       if (code !== 0) {
-        return fail("template smoke", [`Item template build failed for ${item.id}.`]);
+        return fail("template smoke", [`aegis-event ${scope} generation failed for ${variant.id}.`]);
       }
     }
+
+    code = await runCommand("dotnet", ["build", join(moduleRoot, "Billing.csproj"), "-c", "Release"], { env: smokeEnv });
+    if (code !== 0) {
+      return fail("template smoke", [`aegis-module output build failed for ${variant.id}.`]);
+    }
+
+    code = await runCommand("dotnet", ["build", join(output, `${variant.name}.sln`), "-c", "Release", "--no-restore"], { env: smokeEnv });
+    if (code !== 0) {
+      return fail("template smoke", [`generated solution build failed after item templates for ${variant.id}.`]);
+    }
+
+    assertItemModuleSemantics(errors, moduleRoot, variant);
+    assertItemSliceSemantics(errors, moduleRoot, variant);
+    assertItemEventSemantics(errors, moduleRoot, variant);
+    assertNoTemplateTokens(errors, moduleRoot, `${variant.id} item template output`);
   }
+
+  const workerRoot = join(itemRoot, "worker");
+  code = await runCommand("dotnet", [
+    "new",
+    "aegis-worker",
+    "-n",
+    "BillingOutboxDispatcher",
+    "--module",
+    "Billing",
+    "-o",
+    workerRoot
+  ], { env: smokeEnv });
+  if (code !== 0) {
+    return fail("template smoke", ["aegis-worker generation failed."]);
+  }
+
+  code = await runCommand("dotnet", ["build", join(workerRoot, "BillingOutboxDispatcher.csproj"), "-c", "Release"], { env: smokeEnv });
+  if (code !== 0) {
+    return fail("template smoke", ["aegis-worker output build failed."]);
+  }
+
+  assertItemWorkerSemantics(errors, workerRoot);
+  assertNoTemplateTokens(errors, workerRoot, "worker item template output");
 
   return errors.length ? fail("template smoke", errors) : pass("template smoke");
 }
