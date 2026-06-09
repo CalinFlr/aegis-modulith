@@ -2,5 +2,6 @@ using Aegis.Template.BuildingBlocks.Events;
 
 namespace Aegis.Template.Modules.Modules.WorkItems.Contracts;
 
+[IntegrationEventContract("work-items.created", 1)]
 public sealed record WorkItemCreatedIntegrationEvent(Guid Id, Guid WorkItemId, DateTimeOffset OccurredAtUtc)
     : IntegrationEvent(Id, OccurredAtUtc);

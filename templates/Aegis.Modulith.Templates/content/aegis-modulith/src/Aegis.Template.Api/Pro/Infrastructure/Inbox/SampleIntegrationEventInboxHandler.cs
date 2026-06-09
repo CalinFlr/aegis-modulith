@@ -5,13 +5,14 @@ using SampleIntegrationEvent = Aegis.Template.Modules.Modules.Tasks.Contracts.Ta
 using Aegis.Template.Modules.Modules.WorkItems.Contracts;
 using SampleIntegrationEvent = Aegis.Template.Modules.Modules.WorkItems.Contracts.WorkItemCreatedIntegrationEvent;
 #endif
+using Aegis.Template.BuildingBlocks.Events;
 using System.Text.Json;
 
 namespace Aegis.Template.Api.Pro.Infrastructure.Inbox;
 
 public sealed class SampleIntegrationEventInboxHandler(ILogger<SampleIntegrationEventInboxHandler> logger) : IInboxMessageHandler
 {
-    public string MessageType => typeof(SampleIntegrationEvent).FullName ?? nameof(SampleIntegrationEvent);
+    public string MessageType => IntegrationEventContractMetadata.TypeName<SampleIntegrationEvent>();
 
     public Task HandleAsync(InboxMessage message, CancellationToken cancellationToken)
     {

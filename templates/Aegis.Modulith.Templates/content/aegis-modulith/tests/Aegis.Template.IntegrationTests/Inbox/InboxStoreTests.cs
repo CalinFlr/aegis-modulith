@@ -5,6 +5,7 @@ using SampleIntegrationEvent = Aegis.Template.Modules.Modules.WorkItems.Contract
 #endif
 using System.Text.Json;
 using Aegis.Template.Api.Pro.Infrastructure.Inbox;
+using Aegis.Template.BuildingBlocks.Events;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -18,8 +19,9 @@ public sealed class InboxStoreTests
         await using var dbContext = CreateDbContext();
         var store = CreateStore(dbContext);
         var message = CreateSampleEvent();
+        var messageType = IntegrationEventContractMetadata.TypeName<SampleIntegrationEvent>();
 
-        var result = await store.AcceptAsync(message.Id, typeof(SampleIntegrationEvent).FullName!, JsonSerializer.Serialize(message));
+        var result = await store.AcceptAsync(message.Id, messageType, JsonSerializer.Serialize(message));
 
         Assert.Equal(InboxAcceptResult.Accepted, result);
         Assert.Single(await dbContext.InboxMessages.ToArrayAsync());
@@ -32,9 +34,10 @@ public sealed class InboxStoreTests
         var store = CreateStore(dbContext);
         var message = CreateSampleEvent();
         var payload = JsonSerializer.Serialize(message);
+        var messageType = IntegrationEventContractMetadata.TypeName<SampleIntegrationEvent>();
 
-        var first = await store.AcceptAsync(message.Id, typeof(SampleIntegrationEvent).FullName!, payload);
-        var duplicate = await store.AcceptAsync(message.Id, typeof(SampleIntegrationEvent).FullName!, payload);
+        var first = await store.AcceptAsync(message.Id, messageType, payload);
+        var duplicate = await store.AcceptAsync(message.Id, messageType, payload);
 
         Assert.Equal(InboxAcceptResult.Accepted, first);
         Assert.Equal(InboxAcceptResult.Duplicate, duplicate);
@@ -49,12 +52,13 @@ public sealed class InboxStoreTests
         var store = CreateStore(dbContext);
         var message = CreateSampleEvent();
         var payload = JsonSerializer.Serialize(message);
+        var messageType = IntegrationEventContractMetadata.TypeName<SampleIntegrationEvent>();
 
-        await store.AcceptAsync(message.Id, typeof(SampleIntegrationEvent).FullName!, payload);
+        await store.AcceptAsync(message.Id, messageType, payload);
         await store.TryBeginProcessingAsync(message.Id);
         await store.MarkProcessedAsync(message.Id);
 
-        var duplicate = await store.AcceptAsync(message.Id, typeof(SampleIntegrationEvent).FullName!, payload);
+        var duplicate = await store.AcceptAsync(message.Id, messageType, payload);
 
         Assert.Equal(InboxAcceptResult.AlreadyProcessed, duplicate);
         var stored = await dbContext.InboxMessages.SingleAsync();
@@ -68,8 +72,9 @@ public sealed class InboxStoreTests
         await using var dbContext = CreateDbContext();
         var store = CreateStore(dbContext);
         var message = CreateSampleEvent();
+        var messageType = IntegrationEventContractMetadata.TypeName<SampleIntegrationEvent>();
 
-        await store.AcceptAsync(message.Id, typeof(SampleIntegrationEvent).FullName!, JsonSerializer.Serialize(message));
+        await store.AcceptAsync(message.Id, messageType, JsonSerializer.Serialize(message));
         await store.TryBeginProcessingAsync(message.Id);
         await store.MarkFailedAsync(message.Id, "handler failed");
 
@@ -84,13 +89,14 @@ public sealed class InboxStoreTests
     {
         await using var dbContext = CreateDbContext();
         var store = CreateStore(dbContext);
-        var handler = new CountingInboxMessageHandler(typeof(SampleIntegrationEvent).FullName!);
+        var messageType = IntegrationEventContractMetadata.TypeName<SampleIntegrationEvent>();
+        var handler = new CountingInboxMessageHandler(messageType);
         var processor = new InboxProcessor(store, [handler], CreateLogger<InboxProcessor>());
         var message = CreateSampleEvent();
         var payload = JsonSerializer.Serialize(message);
 
-        await store.AcceptAsync(message.Id, typeof(SampleIntegrationEvent).FullName!, payload);
-        await store.AcceptAsync(message.Id, typeof(SampleIntegrationEvent).FullName!, payload);
+        await store.AcceptAsync(message.Id, messageType, payload);
+        await store.AcceptAsync(message.Id, messageType, payload);
 
         var processed = await processor.ProcessPendingAsync();
         var secondPass = await processor.ProcessPendingAsync();
