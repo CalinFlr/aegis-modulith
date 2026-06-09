@@ -60,3 +60,5 @@ app.MapAdvancedProfileEndpoints();
 #endif
 
 app.Run();
+
+public partial class Program;

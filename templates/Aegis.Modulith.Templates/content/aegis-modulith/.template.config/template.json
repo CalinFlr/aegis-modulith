@@ -31,7 +31,8 @@
             "Dockerfile",
             "src/Aegis.Template.Api/Pro/**",
             "src/Aegis.Template.AppHost/**",
-            "src/Aegis.Template.ServiceDefaults/**"
+            "src/Aegis.Template.ServiceDefaults/**",
+            "tests/Aegis.Template.IntegrationTests/**"
           ]
         },
         {
