@@ -29,6 +29,10 @@
           "condition": "(profile == \"core\")",
           "exclude": [
             "Dockerfile",
+            ".dockerignore",
+            ".env.example",
+            "docker-compose.yml",
+            "src/Aegis.Template.Api/appsettings.Production.json",
             "src/Aegis.Template.Api/Pro/**",
             "src/Aegis.Template.AppHost/**",
             "src/Aegis.Template.ServiceDefaults/**",
