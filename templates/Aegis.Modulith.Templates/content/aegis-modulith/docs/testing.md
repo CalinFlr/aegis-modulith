@@ -21,7 +21,7 @@ npm run check
 #if (profile != "core")
 ## Pro And Advanced Integration Tests
 
-This profile includes `tests/Aegis.Template.IntegrationTests` and `tests/Aegis.Template.ContractTests`.
+This profile includes `tests/Aegis.Template.IntegrationTests`, `tests/Aegis.Template.ContractTests`, and `tests/Aegis.Template.PerformanceSmokeTests`.
 
 That test project contains:
 
@@ -67,6 +67,16 @@ They use semantic assertions over endpoint metadata, OpenAPI JSON, integration e
 
 These tests are not performance smoke tests. They do not require Docker, a broker, an external identity provider, real JWT issuance, or external services.
 
+## Performance Smoke Tests
+
+Generated performance smoke tests live under `tests/Aegis.Template.PerformanceSmokeTests`.
+
+They use `Stopwatch`, warm-up requests, and intentionally loose thresholds to detect obvious regressions in API test-host startup, `/health`, authenticated protected requests through test-only fake auth, generated CQRS request paths, and OpenAPI document generation. They are smoke diagnostics, not benchmarks, load tests, or production performance certification.
+
+The generated test factory replaces module persistence with EF InMemory and uses a test-local auth scheme, so the default run does not require Docker, a broker, an external identity provider, a real JWT issuer, a live database, or external services.
+
+See [Performance](performance.md) for the threshold names and safe adjustment guidance.
+
 ## HttpClient Resilience
 
 The generated API registers outbound `HttpClient` defaults through `Microsoft.Extensions.Http.Resilience` and `AddStandardResilienceHandler`.
@@ -75,5 +85,5 @@ The generated API registers outbound `HttpClient` defaults through `Microsoft.Ex
 #else
 ## Core Profile
 
-The core profile keeps the test surface lightweight. It includes architecture tests, but it does not include Testcontainers, fake authentication infrastructure, or pro HttpClient resilience files.
+The core profile keeps the test surface lightweight. It includes architecture tests, but it does not include Testcontainers, fake authentication infrastructure, performance smoke test assets, or pro HttpClient resilience files.
 #endif
