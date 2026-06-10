@@ -91,4 +91,41 @@ public sealed class ContractBoundaryTests
 
         Assert.Empty(failures);
     }
+
+    [Fact]
+    public void Performance_smoke_test_project_matches_selected_profile()
+    {
+        var performanceSmokeProject = Path.Combine(
+            ArchitectureTestContext.SolutionRoot,
+            "tests",
+            $"{ArchitectureTestContext.ProjectPrefix}.PerformanceSmokeTests",
+            $"{ArchitectureTestContext.ProjectPrefix}.PerformanceSmokeTests.csproj");
+        var solution = File.ReadAllText(Path.Combine(ArchitectureTestContext.SolutionRoot, $"{ArchitectureTestContext.ProjectPrefix}.sln"));
+
+        if (ArchitectureTestContext.GetOption("AegisProfile") == "core")
+        {
+            Assert.False(File.Exists(performanceSmokeProject), "Core profile should not include the pro/advanced performance smoke test project.");
+            Assert.DoesNotContain("PerformanceSmokeTests", solution, StringComparison.Ordinal);
+            return;
+        }
+
+        Assert.True(File.Exists(performanceSmokeProject), "Pro and advanced profiles should include the generated performance smoke test project.");
+        Assert.Contains($"{ArchitectureTestContext.ProjectPrefix}.PerformanceSmokeTests", solution, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Production_projects_do_not_reference_performance_smoke_tests()
+    {
+        var failures = new List<string>();
+        foreach (var projectFile in Directory.GetFiles(ArchitectureTestContext.SourceRoot, "*.csproj", SearchOption.AllDirectories))
+        {
+            var content = File.ReadAllText(projectFile);
+            if (content.Contains("PerformanceSmokeTests", StringComparison.Ordinal))
+            {
+                failures.Add($"{ArchitectureTestContext.Relative(projectFile)} references generated performance smoke tests.");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
 }

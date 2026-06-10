@@ -608,6 +608,125 @@ function assertP1D3AContractTestSemantics(errors, output, variant) {
   assertContains(errors, docs, `tests/${variant.name}.ContractTests`, `${variant.id} contract docs should name the generated contract test project.`);
 }
 
+function assertP1D3BPerformanceSmokeSemantics(errors, output, variant) {
+  const solution = join(output, `${variant.name}.sln`);
+  const testingDocs = join(output, "docs", "testing.md");
+  const performanceDocs = join(output, "docs", "performance.md");
+  const performanceRoot = join(output, "tests", `${variant.name}.PerformanceSmokeTests`);
+  const performanceProject = join(performanceRoot, `${variant.name}.PerformanceSmokeTests.csproj`);
+  const performanceTests = join(performanceRoot, "PerformanceSmokeTests.cs");
+  const thresholds = join(performanceRoot, "Infrastructure", "PerformanceSmokeThresholds.cs");
+  const assertions = join(performanceRoot, "Infrastructure", "PerformanceSmokeAssertions.cs");
+  const factory = join(performanceRoot, "Infrastructure", "PerformanceSmokeWebApplicationFactory.cs");
+  const authDefaults = join(performanceRoot, "Authentication", "PerformanceSmokeAuthenticationDefaults.cs");
+  const authHandler = join(performanceRoot, "Authentication", "PerformanceSmokeAuthenticationHandler.cs");
+  const apiProject = join(output, "src", `${variant.name}.Api`, `${variant.name}.Api.csproj`);
+  const modulesProject = join(output, "src", `${variant.name}.Modules`, `${variant.name}.Modules.csproj`);
+  const buildingBlocksProject = join(output, "src", `${variant.name}.BuildingBlocks`, `${variant.name}.BuildingBlocks.csproj`);
+
+  assertExists(errors, performanceDocs, `${variant.id} should include generated performance smoke docs.`);
+
+  if (variant.profile === "core") {
+    assertMissing(errors, performanceRoot, `${variant.id} core profile should not include heavy performance smoke test assets.`);
+    assertNotContains(errors, solution, "PerformanceSmokeTests", `${variant.id} core solution should not include performance smoke tests.`);
+    assertContains(errors, performanceDocs, "Core does not generate the pro/advanced performance smoke test project", `${variant.id} performance docs should explain core exclusion.`);
+    assertNotContains(errors, testingDocs, `tests/${variant.name}.PerformanceSmokeTests`, `${variant.id} testing docs should not name a missing performance smoke project.`);
+    return;
+  }
+
+  assertExists(errors, performanceProject, `${variant.id} pro/advanced profile should include generated performance smoke tests.`);
+  assertContains(errors, solution, `${variant.name}.PerformanceSmokeTests`, `${variant.id} solution should include performance smoke tests so dotnet test runs them.`);
+  if (existsSync(performanceProject)) {
+    const performanceProjectContent = readAbsolute(performanceProject).replaceAll("\\", "/");
+    if (!performanceProjectContent.includes(`${variant.name}.Api/${variant.name}.Api.csproj`)) {
+      errors.push(`${variant.id} performance smoke tests should reference the API project.`);
+    }
+    if (!performanceProjectContent.includes(`${variant.name}.BuildingBlocks/${variant.name}.BuildingBlocks.csproj`)) {
+      errors.push(`${variant.id} performance smoke tests should reference BuildingBlocks.`);
+    }
+    if (!performanceProjectContent.includes(`${variant.name}.Modules/${variant.name}.Modules.csproj`)) {
+      errors.push(`${variant.id} performance smoke tests should reference Modules.`);
+    }
+  }
+
+  assertContains(errors, performanceProject, "Microsoft.AspNetCore.Mvc.Testing", `${variant.id} performance smoke tests should use WebApplicationFactory.`);
+  assertContains(errors, performanceProject, "Microsoft.EntityFrameworkCore.InMemory", `${variant.id} performance smoke tests should override persistence with in-memory EF.`);
+  assertNotContains(errors, performanceProject, "Testcontainers.PostgreSql", `${variant.id} performance smoke tests should not require Docker/Testcontainers.`);
+
+  for (const productionProject of [apiProject, modulesProject, buildingBlocksProject]) {
+    assertNotContains(errors, productionProject, "PerformanceSmokeTests", `${variant.id} production projects must not reference performance smoke tests.`);
+  }
+
+  for (const [path, description] of [
+    [performanceTests, "performance smoke tests"],
+    [thresholds, "performance smoke thresholds"],
+    [assertions, "performance smoke assertions"],
+    [factory, "performance smoke factory"],
+    [authDefaults, "performance smoke fake auth defaults"],
+    [authHandler, "performance smoke fake auth handler"]
+  ]) {
+    assertExists(errors, path, `${variant.id} missing ${description}.`);
+    for (const token of ["Aegis.Template", "AegisProfileValue", "AegisMediatorValue", "AegisSampleValue"]) {
+      assertNotContains(errors, path, token, `${variant.id} performance smoke assets contain unresolved template token ${token}.`);
+    }
+  }
+
+  for (const marker of [
+    "Api_test_host_startup_smoke_stays_within_loose_threshold",
+    "Health_endpoint_response_smoke_stays_within_loose_threshold",
+    "Authenticated_request_path_smoke_stays_within_loose_threshold",
+    "Cqrs_dispatch_request_path_smoke_stays_within_loose_threshold",
+    "OpenApi_document_generation_smoke_stays_within_loose_threshold",
+    "PerformanceSmokeThresholds"
+  ]) {
+    assertContains(errors, performanceTests, marker, `${variant.id} performance smoke tests should cover ${marker}.`);
+  }
+
+  assertContains(errors, thresholds, "intentionally loose smoke thresholds", `${variant.id} performance smoke thresholds should document looseness.`);
+  for (const marker of [
+    "HostStartup",
+    "SimpleRequest",
+    "AuthenticatedRequest",
+    "CqrsDispatchRequest",
+    "OpenApiGeneration",
+    "TimeSpan.FromSeconds"
+  ]) {
+    assertContains(errors, thresholds, marker, `${variant.id} performance smoke thresholds should include ${marker}.`);
+  }
+
+  assertContains(errors, assertions, "best warmed sample", `${variant.id} performance smoke assertions should prefer diagnostic warmed samples.`);
+  assertContains(errors, assertions, "All samples", `${variant.id} performance smoke failures should report sample diagnostics.`);
+  assertContains(errors, assertions, "Stopwatch", `${variant.id} performance smoke measurements should use Stopwatch.`);
+  assertContains(errors, assertions, "not a benchmark or production performance certification", `${variant.id} performance smoke failures should describe diagnostic scope.`);
+  assertContains(errors, factory, "UseInMemoryDatabase", `${variant.id} performance smoke tests should not require a live database.`);
+  assertContains(errors, authDefaults, "Aegis.PerformanceSmoke", `${variant.id} performance smoke fake auth should be test-local.`);
+  assertContains(errors, authHandler, "AegisPermissionClaimTypes.Permission", `${variant.id} performance smoke fake auth should exercise generated permission policies.`);
+
+  const expectedPathMarker = variant.sample === "taskhub" ? "/tasks/" : "/work-items/";
+  assertContains(errors, performanceTests, expectedPathMarker, `${variant.id} performance smoke tests should cover the generated CQRS request path.`);
+
+  for (const forbidden of [
+    "Testcontainers",
+    "MassTransit",
+    "RabbitMQ",
+    "Kafka",
+    "Azure.Messaging.ServiceBus",
+    "IdentityServer",
+    "OpenIddict",
+    "Keycloak",
+    "BenchmarkDotNet"
+  ]) {
+    assertNotContains(errors, performanceTests, forbidden, `${variant.id} performance smoke tests should not depend on ${forbidden}.`);
+    assertNotContains(errors, factory, forbidden, `${variant.id} performance smoke factory should not depend on ${forbidden}.`);
+  }
+
+  assertContains(errors, testingDocs, `tests/${variant.name}.PerformanceSmokeTests`, `${variant.id} testing docs should name the generated performance smoke project.`);
+  assertContains(errors, performanceDocs, "not benchmarks", `${variant.id} performance docs should state smoke tests are not benchmarks.`);
+  assertContains(errors, performanceDocs, "intentionally loose", `${variant.id} performance docs should explain loose thresholds.`);
+  assertContains(errors, performanceDocs, "No Docker, broker, external identity provider, external service, or real JWT issuer is required", `${variant.id} performance docs should state default independence.`);
+  assertContains(errors, performanceDocs, "HostStartup", `${variant.id} performance docs should document threshold names.`);
+}
+
 function assertAiSemantics(errors, output, variant) {
   const aiFiles = [
     "AGENTS.md",
@@ -1404,6 +1523,7 @@ async function checkTemplateSmoke() {
     assertP1D2AAuthPermissionSemantics(errors, output, variant);
     assertP1D2BInboxSemantics(errors, output, variant);
     assertP1D3AContractTestSemantics(errors, output, variant);
+    assertP1D3BPerformanceSmokeSemantics(errors, output, variant);
     assertAiSemantics(errors, output, variant);
     assertGuardrailSemantics(errors, output, variant);
     assertHookSemantics(errors, output, variant);
