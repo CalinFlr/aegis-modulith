@@ -21,11 +21,13 @@ dotnet test -c Release
 It now also asserts P1D-2A JWT/auth and permission-policy semantics without issuing real JWTs or calling an external identity provider.
 It also asserts P1D-2B inbox semantics without requiring a broker or Docker.
 It also asserts P1D-3A generated API and integration-contract test semantics without requiring Docker, a broker, an external identity provider, or external services.
+It also asserts P1D-3B generated performance smoke test semantics for pro and advanced outputs without requiring Docker, a broker, an external identity provider, a real JWT issuer, or external services.
 
 ## Pro And Advanced Integration Tests
 
 Generated pro and advanced outputs include `tests/<App>.IntegrationTests`.
 They also include `tests/<App>.ContractTests` for API and integration-contract drift detection.
+They also include `tests/<App>.PerformanceSmokeTests` for fast diagnostic runtime regression checks.
 
 That test project contains:
 
@@ -70,6 +72,16 @@ Generated pro and advanced contract tests live under `tests/<App>.ContractTests`
 They use semantic assertions over endpoint metadata, OpenAPI JSON, integration event metadata, and JSON round trips. They verify routes, methods, declared status codes, declared content types, JWT bearer OpenAPI metadata, named permission policies, fake-auth isolation, integration event type/version metadata, domain/integration event separation, and inbox payload identity fields.
 
 These tests are not performance smoke tests. They do not require Docker, a broker, an external identity provider, real JWT issuance, or external services.
+
+## Performance Smoke Tests
+
+Generated pro and advanced performance smoke tests live under `tests/<App>.PerformanceSmokeTests`.
+
+They use `Stopwatch`, warm-up requests, and intentionally loose thresholds to detect obvious regressions in API test-host startup, `/health`, authenticated protected requests through test-only fake auth, generated CQRS request paths, and OpenAPI document generation. They are smoke diagnostics, not benchmarks, load tests, or production performance certification.
+
+The generated test factory replaces module persistence with EF InMemory and uses a test-local auth scheme, so the default run does not require Docker, a broker, an external identity provider, a real JWT issuer, a live database, or external services.
+
+See [Performance](performance.md) for the threshold names and safe adjustment guidance.
 
 ## HttpClient Resilience
 

@@ -90,6 +90,16 @@
 - [x] Core generated output excludes the pro/advanced contract test project by default.
 - [x] Default template smoke asserts P1D-3A semantics without requiring Docker, a broker, an external identity provider, or external services.
 
+## P1D-3B generated performance smoke tests
+
+- [x] Pro and advanced generated outputs include a generated performance smoke test project in the solution.
+- [x] Performance smoke tests cover API test host startup, `/health`, authenticated protected request paths through test-only fake auth, generated CQRS request paths, and OpenAPI document generation.
+- [x] Performance smoke tests use `Stopwatch`, warm-up requests, sample diagnostics, and intentionally loose named thresholds.
+- [x] Performance smoke tests use EF InMemory and test-local fake auth so default validation does not require Docker, a broker, an external identity provider, a real JWT issuer, a live database, or external services.
+- [x] Core generated output excludes heavy performance smoke assets by default.
+- [x] Generated architecture tests assert production projects do not reference performance smoke tests.
+- [x] Default template smoke asserts P1D-3B semantics without requiring Docker, a broker, an external identity provider, or external services.
+
 ## Documentation
 
 - [x] README includes golden path.
