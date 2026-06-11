@@ -70,8 +70,13 @@ function assertContains(errors, path, expected, message) {
 function readForbiddenActions(errors) {
   const path = ".ai/policies/forbidden-actions.yaml";
   if (!exists(path)) {
-    errors.push("guardrails=strict with ai=enterprise must include forbidden action policy.");
-    return [];
+    return [
+      { pattern: "rm -rf", reason: "Destructive command", block: true },
+      { pattern: "TreatWarningsAsErrors>false", reason: "Do not weaken build quality", block: true },
+      { pattern: "NoWarn", reason: "Suppressing warnings requires maintainer approval", requiresApproval: true },
+      { path: "**/.env", block: true },
+      { path: "**/*secret*", requiresApproval: true }
+    ];
   }
 
   const entries = [];
@@ -241,6 +246,19 @@ function checkSecurity() {
     errors.push(`Do not duplicate guardrail check logic in shell scripts: ${file}.`);
   }
 
+  const configFiles = listFiles(".", file => {
+    const normalized = file.replaceAll("\\", "/").toLowerCase();
+    return normalized.endsWith("appsettings.json") ||
+      normalized.endsWith("appsettings.production.json");
+  });
+
+  for (const file of configFiles) {
+    const content = read(file).toLowerCase();
+    if (content.includes("password=postgres") || content.includes("\"password\"")) {
+      errors.push(`Runtime configuration must not contain a default password: ${file}.`);
+    }
+  }
+
   return errors.length ? fail("security", errors) : pass("security");
 }
 
@@ -380,28 +398,33 @@ function checkStrict() {
     assertExists(errors, ".ai/guardrails/strict-rules.md", "guardrails=strict with ai=enterprise must include strict rules.");
     assertContains(errors, ".ai/guardrails/strict-rules.md", "sensitive files", "strict rules must explain sensitive-file checks.");
     assertContains(errors, "AGENTS.md", "specs/", "strict enterprise AGENTS.md must mention specs/.");
-    const forbiddenEntries = readForbiddenActions(errors);
-    const sourceFiles = listFiles(".", file => !file.replaceAll("\\", "/").endsWith("/.ai/policies/forbidden-actions.yaml"));
+  } else {
+    assertMissing(errors, ".ai", "Non-enterprise strict guardrails should not generate enterprise .ai assets.");
+  }
 
-    for (const entry of forbiddenEntries) {
-      if (entry.pattern) {
-        for (const file of sourceFiles) {
-          if (read(file).includes(entry.pattern)) {
-            errors.push(`Forbidden content pattern ${entry.pattern} detected in ${file}.`);
-          }
-        }
-      }
+  const forbiddenEntries = readForbiddenActions(errors);
+  const sourceFiles = listFiles(".", file => {
+    const normalized = file.replaceAll("\\", "/");
+    return !normalized.endsWith("/.ai/policies/forbidden-actions.yaml") &&
+      !normalized.endsWith("/tools/guardrails/check.mjs");
+  });
 
-      if (entry.path && entry.block === true) {
-        for (const file of sourceFiles) {
-          if (matchesForbiddenPath(entry.path, file)) {
-            errors.push(`Blocked forbidden path detected: ${file}.`);
-          }
+  for (const entry of forbiddenEntries) {
+    if (entry.pattern) {
+      for (const file of sourceFiles) {
+        if (read(file).includes(entry.pattern)) {
+          errors.push(`Forbidden content pattern ${entry.pattern} detected in ${file}.`);
         }
       }
     }
-  } else {
-    assertMissing(errors, ".ai", "Non-enterprise strict guardrails should not generate enterprise .ai assets.");
+
+    if (entry.path && entry.block === true) {
+      for (const file of sourceFiles) {
+        if (matchesForbiddenPath(entry.path, file)) {
+          errors.push(`Blocked forbidden path detected: ${file}.`);
+        }
+      }
+    }
   }
 
   return errors.length ? fail("strict guardrails", errors) : pass("strict guardrails");

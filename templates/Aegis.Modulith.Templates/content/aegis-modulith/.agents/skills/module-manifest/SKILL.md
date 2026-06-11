@@ -13,7 +13,7 @@ Make module ownership, dependencies, public contracts, features, and boundary ru
 
 Read:
 
-- `docs/architecture/module-manifest.md`
+- `docs/module-manifest.md`
 - `docs/architecture.md`
 - `AGENTS.md`
 - the module's `module.json`, if it exists
