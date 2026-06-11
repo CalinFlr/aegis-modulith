@@ -2,22 +2,27 @@
 
 ## Purpose
 
-Add a command or query slice inside one module.
+Standard agent workflow for create vertical slice.
 
 ## Steps
 
-1. Read the module manifest.
-2. Put request, handler, endpoint, validator, and response types in the feature folder.
-3. Keep commands business-intent based.
-4. Keep queries read-only.
-5. Add focused tests.
+1. Read relevant module README.
+2. Decide command or query.
+3. Create endpoint, command/query, handler, validator if needed, response model.
+4. Add tests.
+5. Update OpenAPI metadata.
+6. Run guardrails.
 
 ## Required validation
 
 ```bash
-dotnet test -c Release
+npm run check
 ```
 
-## Human approval
+## Human approval required when
 
-Required for public API contract changes before merge.
+- Auth/authz changes.
+- New production dependency.
+- EF migration.
+- Public API breaking change.
+- CI/release changes.

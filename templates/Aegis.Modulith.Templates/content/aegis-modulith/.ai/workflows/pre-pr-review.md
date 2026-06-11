@@ -2,23 +2,26 @@
 
 ## Purpose
 
-Review an AI-assisted change before merge.
+Standard agent workflow for pre-pr review.
 
 ## Steps
 
-1. Summarize changed files and behavior.
-2. Check architecture rules.
-3. Check docs and OpenQuestions updates.
-4. Run required validation.
-5. Report residual risk.
+1. Run npm run check.
+2. Run template smoke tests.
+3. Review docs/ADR changes.
+4. Summarize risks.
+5. Ensure git status is clean except intended changes.
 
 ## Required validation
 
 ```bash
 npm run check
-dotnet test -c Release
 ```
 
-## Human approval
+## Human approval required when
 
-Required for high and critical risk areas.
+- Auth/authz changes.
+- New production dependency.
+- EF migration.
+- Public API breaking change.
+- CI/release changes.

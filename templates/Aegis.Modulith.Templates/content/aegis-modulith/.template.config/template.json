@@ -175,6 +175,22 @@
         { "choice": "mediatr", "description": "Optional MediatR adapter path." }
       ]
     },
+    "AEGIS_MEDIATR": {
+      "type": "computed",
+      "value": "(mediator == \"mediatr\")"
+    },
+    "AEGIS_CORE_MEDIATOR": {
+      "type": "computed",
+      "value": "(mediator == \"core\")"
+    },
+    "AEGIS_PRO_OR_ADVANCED": {
+      "type": "computed",
+      "value": "(profile != \"core\")"
+    },
+    "AEGIS_ADVANCED": {
+      "type": "computed",
+      "value": "(profile == \"advanced\")"
+    },
     "database": {
       "type": "parameter",
       "datatype": "choice",

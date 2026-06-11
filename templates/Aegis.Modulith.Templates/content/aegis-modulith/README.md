@@ -21,6 +21,7 @@ Generated with `Aegis.Modulith`.
 dotnet restore
 dotnet build -c Release
 dotnet test -c Release
+npm run check
 ```
 
 #if (guardrails != "off")
@@ -34,5 +35,6 @@ npm run check
 ## Run
 
 ```bash
+dotnet user-secrets set "ConnectionStrings:Postgres" "Host=localhost;Port=5432;Database=aegis_template;Username=<user>;Password=<password>" --project src/Aegis.Template.Api
 dotnet run --project src/Aegis.Template.Api
 ```

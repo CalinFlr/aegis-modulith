@@ -1,22 +1,33 @@
 ---
 name: module-manifest-review
-description: Use when reviewing module.json manifests for consistency and boundary metadata.
+description: Use when creating or reviewing module.json manifests for generated Aegis.Modulith modules.
 ---
 
-# Module Manifest Review
+# Module Manifest Review Skill
 
 ## Goal
 
-Review module manifests for accurate ownership and boundary rules.
+Ensure module manifests accurately describe module boundaries, schemas, dependencies, public contracts, features, and rules.
 
-## Procedure
+## Required context
 
-- Check required fields.
-- Check dependencies and public contracts.
-- Check boundary rule defaults.
+Read:
+
+- `docs/architecture/module-manifest.md`
+- `docs/architecture.md`
+- `AGENTS.md`
+
+## Rules
+
+- Dependencies must point to contracts, not infrastructure.
+- Cross-module database access must remain false by default.
+- Cross-module foreign keys must remain false by default.
+- Features should map to vertical slices.
+- Schema must match the module-owned PostgreSQL schema.
 
 ## Validation
 
 ```bash
 npm run check
+npm run check:docs
 ```

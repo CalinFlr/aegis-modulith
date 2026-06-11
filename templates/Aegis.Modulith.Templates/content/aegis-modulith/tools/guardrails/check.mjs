@@ -291,6 +291,34 @@ function checkSpecs() {
   return errors.length ? fail("specs", errors) : pass("specs");
 }
 
+function checkModuleManifests() {
+  const errors = [];
+  const manifests = listFiles("src", file => file.endsWith("/module.json"));
+
+  if (manifests.length === 0) {
+    errors.push("No generated module.json manifests found under src/.");
+  }
+
+  for (const file of manifests) {
+    try {
+      const manifest = JSON.parse(read(file));
+      for (const property of ["name", "schema", "type", "owner", "dependencies", "publicContracts", "features", "rules"]) {
+        if (!(property in manifest)) errors.push(`${file} missing ${property}.`);
+      }
+      if (manifest.rules?.allowCrossModuleDatabaseAccess !== false) {
+        errors.push(`${file} must set rules.allowCrossModuleDatabaseAccess to false.`);
+      }
+      if (manifest.rules?.allowInfrastructureReferences !== false) {
+        errors.push(`${file} must set rules.allowInfrastructureReferences to false.`);
+      }
+    } catch (error) {
+      errors.push(`${file} is not valid JSON: ${error.message}`);
+    }
+  }
+
+  return errors.length ? fail("module manifests", errors) : pass("module manifests");
+}
+
 function checkStrict() {
   const errors = [];
 
@@ -336,8 +364,10 @@ const groups = {
   specs: [checkSpecs],
   skills: [checkSkills],
   workflows: [checkWorkflows],
+  manifest: [checkModuleManifests],
+  manifests: [checkModuleManifests],
   "template-smoke": [checkTemplateSmoke],
-  all: [checkAi, checkDocs, checkSecurity, checkSkills, checkWorkflows, checkSpecs, checkStrict]
+  all: [checkAi, checkDocs, checkSecurity, checkSkills, checkWorkflows, checkSpecs, checkStrict, checkModuleManifests]
 };
 
 const selected = groups[target];

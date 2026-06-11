@@ -1,7 +1,9 @@
 # Dependency Policy
 
-- Prefer built-in .NET and Microsoft packages first.
+- Prefer Microsoft/.NET built-in features first.
 - Prefer stable, maintained, permissive-license packages.
-- Do not add production dependencies without documenting why.
-- Keep MediatR optional; do not make it mandatory.
-- Run restore, build, tests, and guardrails after dependency changes.
+- Use Central Package Management.
+- Do not add production dependencies without justification.
+- Run NuGet audit and template smoke tests after dependency changes.
+- MediatR is optional only; do not make it mandatory.
+- Avoid adding packages for trivial abstractions.

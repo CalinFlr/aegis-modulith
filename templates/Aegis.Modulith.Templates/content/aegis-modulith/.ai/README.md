@@ -1,10 +1,11 @@
-# AI Development System
+# Aegis AI Development System
 
-This folder contains enterprise AI development assets for the generated app.
+This folder contains vendor-neutral AI development workflows, policies, guardrails, and evals.
 
-- `policies/`: risk, dependency, security, and forbidden-action policy.
-- `workflows/`: repeatable implementation workflows.
-- `guardrails/`: deterministic guardrail rule descriptions.
-- `evals/`: review prompts and evaluation checklists.
+- `.agents/skills` contains Codex skills.
+- `.ai/workflows` contains step-by-step procedures.
+- `.ai/policies` contains rules and risk models.
+- `.ai/guardrails` documents deterministic checks.
+- `.ai/evals` contains scenarios to test agent behavior.
 
-`AGENTS.md` remains the canonical instruction source.
+Principle: instructions guide agents, guardrails verify behavior, CI is the final authority.

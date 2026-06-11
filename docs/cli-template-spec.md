@@ -49,7 +49,7 @@ dotnet new aegis-modulith \
 --hooks none|lefthook
 --skills none|core|enterprise
 --docs standard|full
---license apache2|mit
+--license apache2
 ```
 
 ## Profile: core
@@ -100,14 +100,14 @@ Enterprise scaffolding:
 
 - Everything in pro.
 - Permission model.
-- JWT auth scaffolding.
+- Auth-ready permission placeholders.
 - Multi-tenancy skeleton.
 - Optional broker-ready structure.
 - Inbox pattern.
 - Contract tests.
 - Performance smoke tests.
 - Deployment skeleton.
-- Strict guardrails.
+- Strict guardrail stance.
 - Optional Lefthook.
 - MCP-ready documentation.
 

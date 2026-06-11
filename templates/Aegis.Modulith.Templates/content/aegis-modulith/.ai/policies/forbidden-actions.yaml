@@ -3,9 +3,13 @@ forbidden:
     reason: "Destructive command"
   - pattern: "TreatWarningsAsErrors>false"
     reason: "Do not weaken build quality"
+  - pattern: "NoWarn"
+    requiresApproval: true
   - path: "**/.env"
     block: true
   - path: "**/*secret*"
     requiresApproval: true
   - path: ".github/workflows/**"
+    requiresApproval: true
+  - path: "LICENSE"
     requiresApproval: true
