@@ -18,7 +18,6 @@ Read:
 - `specs/README.md`
 - `.ai/workflows/create-spec.md`
 - `.ai/workflows/implement-spec.md`
-- `docs/ai-development/spec-driven-development.md`
 
 ## Rules
 

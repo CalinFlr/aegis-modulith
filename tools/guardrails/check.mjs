@@ -234,6 +234,7 @@ function assertGuardrailSemantics(errors, output, variant) {
     assertMissing(errors, packageJson, `${variant.id} guardrails=off should not include guardrail package scripts.`);
     assertNotContains(errors, ci, "npm run check", `${variant.id} guardrails=off CI should not run guardrails.`);
     assertNotContains(errors, readme, "npm run check", `${variant.id} guardrails=off README should not tell users to run npm guardrails.`);
+    assertNotContains(errors, join(output, ".ai", "workflows", "pre-pr-review.md"), "npm run check", `${variant.id} guardrails=off pre-PR workflow should not require npm guardrails.`);
   } else {
     assertExists(errors, runner, `${variant.id} guardrails=${variant.guardrails} should include the Node guardrail runner.`);
     assertExists(errors, packageJson, `${variant.id} guardrails=${variant.guardrails} should include package.json.`);
@@ -260,6 +261,7 @@ function assertGuardrailSemantics(errors, output, variant) {
   if (variant.guardrails === "strict") {
     assertContains(errors, runner, "readForbiddenActions", `${variant.id} strict guardrails should parse or load forbidden actions.`);
     assertContains(errors, runner, "Blocked forbidden path detected", `${variant.id} strict guardrails should enforce blocked forbidden paths.`);
+    assertContains(errors, runner, "Approval-required forbidden path detected", `${variant.id} strict guardrails should fail approval-required forbidden paths in CI.`);
   }
 }
 
@@ -665,6 +667,7 @@ async function checkTemplateSmoke() {
     { id: "strict-ai-agents", name: "Smoke.StrictAiAgents", profile: "core", mediator: "core", sample: "none", ai: "agents", guardrails: "strict", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "agents", "--guardrails", "strict", "--docs", "full"] },
     { id: "guardrails-off-lefthook", name: "Smoke.GuardrailsOff", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "off", hooks: "lefthook", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "enterprise", "--guardrails", "off", "--hooks", "lefthook"] },
     { id: "skills-none-docs-standard", name: "Smoke.SkillsNoneDocsStandard", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "none", docs: "standard", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "enterprise", "--skills", "none", "--docs", "standard", "--guardrails", "standard"] },
+    { id: "skills-core-docs-standard", name: "Smoke.SkillsCoreDocsStandard", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "core", docs: "standard", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "enterprise", "--skills", "core", "--docs", "standard", "--guardrails", "standard"] },
     { id: "skills-core-license-mit", name: "Smoke.SkillsCoreLicenseMit", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "core", docs: "full", license: "mit", licenseExpression: "MIT", args: ["--profile", "core", "--ai", "enterprise", "--skills", "core", "--license", "mit", "--guardrails", "standard"] }
   ];
 

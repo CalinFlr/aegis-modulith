@@ -71,11 +71,11 @@ function readForbiddenActions(errors) {
   const path = ".ai/policies/forbidden-actions.yaml";
   if (!exists(path)) {
     return [
-      { pattern: "rm -rf", reason: "Destructive command", block: true },
-      { pattern: "TreatWarningsAsErrors>false", reason: "Do not weaken build quality", block: true },
-      { pattern: "NoWarn", reason: "Suppressing warnings requires maintainer approval", requiresApproval: true },
-      { path: "**/.env", block: true },
-      { path: "**/*secret*", requiresApproval: true }
+      { pattern: "rm -rf", reason: "Destructive command", block: true, builtIn: true },
+      { pattern: "TreatWarningsAsErrors>false", reason: "Do not weaken build quality", block: true, builtIn: true },
+      { pattern: "NoWarn", reason: "Suppressing warnings requires maintainer approval", requiresApproval: true, builtIn: true },
+      { path: "**/.env", block: true, builtIn: true },
+      { path: "**/*secret*", requiresApproval: true, builtIn: true }
     ];
   }
 
@@ -418,10 +418,14 @@ function checkStrict() {
       }
     }
 
-    if (entry.path && entry.block === true) {
+    if (entry.path && (entry.block === true || (entry.requiresApproval === true && entry.builtIn === true))) {
       for (const file of sourceFiles) {
         if (matchesForbiddenPath(entry.path, file)) {
-          errors.push(`Blocked forbidden path detected: ${file}.`);
+          if (entry.block === true) {
+            errors.push(`Blocked forbidden path detected: ${file}.`);
+          } else {
+            errors.push(`Approval-required forbidden path detected: ${file}.`);
+          }
         }
       }
     }
