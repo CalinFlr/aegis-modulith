@@ -13,10 +13,10 @@ Ensure Aegis.Modulith learns from strong repositories without copying their weak
 
 Read:
 
-- `docs/competitive-analysis.md`
-- `docs/project-brief.md`
+- `README.md`
+- `docs/getting-started.md`
 - `docs/architecture.md`
-- `docs/getting-started/which-profile.md`
+- `docs/getting-started.md`
 - `OpenQuestions.md`
 
 ## Rules

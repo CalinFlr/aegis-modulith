@@ -60,6 +60,21 @@
 - [x] No duplicated `.sh`/`.ps1` guardrail logic.
 - [x] Module manifest docs and template exist.
 
+## P1A generated AI and guardrail options
+
+- [x] `--ai none` excludes generated AI agent files, `.ai`, `.agents`, AI docs, `OpenQuestions.md`, and `specs`.
+- [x] `--ai agents` includes neutral agent files and basic AI docs without enterprise `.ai`, `.agents`, or `specs`.
+- [x] `--ai enterprise` includes enterprise `.ai`, generated skills according to `--skills`, AI docs according to `--docs`, and a spec template.
+- [x] `--guardrails off` excludes the Node guardrail runner, guardrail package scripts, and guardrail CI wiring.
+- [x] `--guardrails standard` includes the generated Node runner, package scripts, generated guardrail checks, and CI wiring.
+- [x] `--guardrails strict` includes strict policies/rules and generated strict shape checks.
+- [x] `--hooks none` excludes `lefthook.yml`.
+- [x] `--hooks lefthook` runs generated guardrails when guardrails are enabled and falls back to dotnet build/test when guardrails are off.
+- [x] `--skills none|core|enterprise` materializes the expected generated skill set.
+- [x] `--docs standard|full` materializes standard and expanded generated docs distinctly.
+- [x] `--license apache2|mit` generates matching `LICENSE`, README license text, and package metadata.
+- [x] `npm run template:smoke` asserts the generated semantics above.
+
 ## CI and guardrails
 
 - [x] `npm run check` passes.

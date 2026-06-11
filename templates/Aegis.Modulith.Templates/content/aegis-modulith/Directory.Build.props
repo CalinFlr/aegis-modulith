@@ -4,7 +4,12 @@
     <AegisMediator>AegisMediatorValue</AegisMediator>
     <AegisDatabase>AegisDatabaseValue</AegisDatabase>
     <AegisSample>AegisSampleValue</AegisSample>
+    <AegisAi>AegisAiValue</AegisAi>
     <AegisGuardrails>AegisGuardrailsValue</AegisGuardrails>
+    <AegisHooks>AegisHooksValue</AegisHooks>
+    <AegisSkills>AegisSkillsValue</AegisSkills>
+    <AegisDocs>AegisDocsValue</AegisDocs>
+    <AegisLicense>AegisLicenseExpressionValue</AegisLicense>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest</AnalysisLevel>
   </PropertyGroup>

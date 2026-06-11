@@ -17,3 +17,9 @@ jobs:
       - run: dotnet restore
       - run: dotnet build -c Release --no-restore
       - run: dotnet test -c Release --no-build
+#if (guardrails != "off")
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm run check
+#endif

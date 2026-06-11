@@ -111,6 +111,21 @@ Use this template:
 - Created: 2026-06-06
 - Resolved: N/A
 
+### Q-20260608-001: Define the generated core AI skill subset
+
+- Status: inferred
+- Risk: medium
+- Owner: human
+- Source: P1A generated AI option materialization
+- Affected areas: templates, generated `.agents/skills`, generated AI docs, smoke assertions
+- Question: Which skills should `--skills core` include in generated enterprise AI output?
+- Context: The CLI documents `--skills none|core|enterprise`, but the previous implementation did not materialize a generated skill set. P1A needed a concrete, testable core subset.
+- Proposed default: Treat `core` as the skills needed for basic docs, architecture, module, vertical-slice, module-manifest, and spec workflows: `docs-writer`, `dotnet-architecture-review`, `dotnet-module`, `dotnet-vertical-slice`, `module-manifest`, and `spec-driven-feature`.
+- Impact if different: Update generated `.agents/skills`, generated AI docs, and smoke assertions to match the maintainer-selected core subset.
+- Current action: implement default
+- Created: 2026-06-08
+- Resolved: N/A
+
 ## Blockers
 
 No known blockers at pack creation time.

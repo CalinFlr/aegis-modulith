@@ -1,9 +1,12 @@
 forbidden:
   - pattern: "rm -rf"
     reason: "Destructive command"
+    block: true
   - pattern: "TreatWarningsAsErrors>false"
     reason: "Do not weaken build quality"
+    block: true
   - pattern: "NoWarn"
+    reason: "Suppressing warnings requires maintainer approval"
     requiresApproval: true
   - path: "**/.env"
     block: true

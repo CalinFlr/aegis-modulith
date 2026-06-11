@@ -8,6 +8,12 @@ Generated with `Aegis.Modulith`.
 - Mediator: `AegisMediatorValue`
 - Database: `AegisDatabaseValue`
 - Sample: `AegisSampleValue`
+- AI assets: `AegisAiValue`
+- Guardrails: `AegisGuardrailsValue`
+- Hooks: `AegisHooksValue`
+- Skill generation: `AegisSkillsValue` applies only when enterprise AI assets are generated.
+- Docs: `AegisDocsValue`
+- License: `AegisLicenseExpressionValue`
 
 ## Validate
 
@@ -15,7 +21,6 @@ Generated with `Aegis.Modulith`.
 dotnet restore
 dotnet build -c Release
 dotnet test -c Release
-npm run check
 ```
 
 ## Run

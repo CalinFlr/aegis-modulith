@@ -13,7 +13,7 @@ Ensure module manifests accurately describe module boundaries, schemas, dependen
 
 Read:
 
-- `docs/architecture/module-manifest.md`
+- `docs/module-manifest.md`
 - `docs/architecture.md`
 - `AGENTS.md`
 

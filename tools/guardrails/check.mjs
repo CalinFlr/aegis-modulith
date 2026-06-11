@@ -28,7 +28,7 @@ function listFiles(dir, predicate = () => true) {
   const abs = join(root, dir);
   if (!existsSync(abs)) return [];
   const out = [];
-  const ignoredDirectories = new Set([".git", "artifacts", "bin", "obj"]);
+  const ignoredDirectories = new Set([".git", "artifacts", "bin", "node_modules", "obj"]);
   function walk(current) {
     for (const entry of readdirSync(current)) {
       if (ignoredDirectories.has(entry)) continue;
@@ -95,7 +95,12 @@ function assertGeneratedOptions(errors, output, variant) {
   assertContains(errors, props, `<AegisProfile>${variant.profile}</AegisProfile>`, `${variant.id} should record the selected profile.`);
   assertContains(errors, props, `<AegisMediator>${variant.mediator}</AegisMediator>`, `${variant.id} should record the selected mediator.`);
   assertContains(errors, props, `<AegisSample>${variant.sample}</AegisSample>`, `${variant.id} should record the selected sample.`);
+  assertContains(errors, props, `<AegisAi>${variant.ai}</AegisAi>`, `${variant.id} should record the selected AI mode.`);
   assertContains(errors, props, `<AegisGuardrails>${variant.guardrails}</AegisGuardrails>`, `${variant.id} should record the selected guardrails mode.`);
+  assertContains(errors, props, `<AegisHooks>${variant.hooks}</AegisHooks>`, `${variant.id} should record the selected hooks mode.`);
+  assertContains(errors, props, `<AegisSkills>${variant.skills}</AegisSkills>`, `${variant.id} should record the selected skills mode.`);
+  assertContains(errors, props, `<AegisDocs>${variant.docs}</AegisDocs>`, `${variant.id} should record the selected docs mode.`);
+  assertContains(errors, props, `<AegisLicense>${variant.licenseExpression}</AegisLicense>`, `${variant.id} should record the selected license.`);
 }
 
 function assertMediatorSemantics(errors, output, variant) {
@@ -172,6 +177,211 @@ function assertProfileSemantics(errors, output, variant) {
     assertMissing(errors, advancedServices, `${variant.id} pro profile should not include advanced profile services.`);
     assertNotContains(errors, program, "AddAdvancedProfileServices", `${variant.id} pro Program.cs should not wire advanced services.`);
     assertNotContains(errors, program, "MapAdvancedProfileEndpoints", `${variant.id} pro Program.cs should not map advanced endpoints.`);
+  }
+}
+
+function assertAiSemantics(errors, output, variant) {
+  const aiFiles = [
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".github/copilot-instructions.md",
+    "OpenQuestions.md",
+    ".ai",
+    ".agents",
+    "docs/ai-development",
+    "specs"
+  ];
+
+  if (variant.ai === "none") {
+    for (const file of aiFiles) {
+      assertMissing(errors, join(output, file), `${variant.id} ai=none should not include ${file}.`);
+    }
+    return;
+  }
+
+  assertExists(errors, join(output, "AGENTS.md"), `${variant.id} should include AGENTS.md.`);
+  assertExists(errors, join(output, "CLAUDE.md"), `${variant.id} should include CLAUDE.md.`);
+  assertContains(errors, join(output, "CLAUDE.md"), "AGENTS.md", `${variant.id} CLAUDE.md should point to AGENTS.md.`);
+  assertExists(errors, join(output, ".github", "copilot-instructions.md"), `${variant.id} should include Copilot instructions because GitHub workflow output exists.`);
+  assertContains(errors, join(output, ".github", "copilot-instructions.md"), "AGENTS.md", `${variant.id} Copilot instructions should point to AGENTS.md.`);
+  assertExists(errors, join(output, "OpenQuestions.md"), `${variant.id} should include OpenQuestions.md.`);
+
+  if (variant.ai === "agents") {
+    for (const file of [".ai", ".agents", "specs"]) {
+      assertMissing(errors, join(output, file), `${variant.id} ai=agents should not include enterprise-only ${file}.`);
+    }
+    return;
+  }
+
+  for (const file of [".ai/policies", ".ai/workflows", ".ai/guardrails", ".ai/evals"]) {
+    assertExists(errors, join(output, file), `${variant.id} ai=enterprise should include ${file}.`);
+  }
+
+  assertExists(errors, join(output, "specs", "README.md"), `${variant.id} ai=enterprise should include specs/README.md.`);
+  for (const file of ["spec.md", "plan.md", "tasks.md", "acceptance.md", "risks.md", "open-questions.md"]) {
+    assertExists(errors, join(output, "specs", "_template", file), `${variant.id} ai=enterprise should include specs/_template/${file}.`);
+  }
+}
+
+function assertGuardrailSemantics(errors, output, variant) {
+  const runner = join(output, "tools", "guardrails", "check.mjs");
+  const packageJson = join(output, "package.json");
+  const ci = join(output, ".github", "workflows", "ci.yml");
+  const readme = join(output, "README.md");
+
+  if (variant.guardrails === "off") {
+    assertMissing(errors, runner, `${variant.id} guardrails=off should not include the Node guardrail runner.`);
+    assertMissing(errors, packageJson, `${variant.id} guardrails=off should not include guardrail package scripts.`);
+    assertNotContains(errors, ci, "npm run check", `${variant.id} guardrails=off CI should not run guardrails.`);
+    assertNotContains(errors, readme, "npm run check", `${variant.id} guardrails=off README should not tell users to run npm guardrails.`);
+    assertNotContains(errors, join(output, ".ai", "workflows", "pre-pr-review.md"), "npm run check", `${variant.id} guardrails=off pre-PR workflow should not require npm guardrails.`);
+  } else {
+    assertExists(errors, runner, `${variant.id} guardrails=${variant.guardrails} should include the Node guardrail runner.`);
+    assertExists(errors, packageJson, `${variant.id} guardrails=${variant.guardrails} should include package.json.`);
+    for (const script of ["\"check\"", "\"check:ai\"", "\"check:docs\"", "\"check:security\"", "\"check:specs\"", "\"template:smoke\""]) {
+      assertContains(errors, packageJson, script, `${variant.id} package.json should include ${script}.`);
+    }
+    assertContains(errors, ci, "npm run check", `${variant.id} CI should run generated guardrails.`);
+    assertContains(errors, runner, "\"node_modules\"", `${variant.id} generated guardrails should ignore node_modules.`);
+    assertContains(errors, runner, "\".git\"", `${variant.id} generated guardrails should ignore .git.`);
+    assertContains(errors, runner, "\"bin\"", `${variant.id} generated guardrails should ignore bin.`);
+    assertContains(errors, runner, "\"obj\"", `${variant.id} generated guardrails should ignore obj.`);
+    assertContains(errors, runner, "appsettings.production.json", `${variant.id} generated security guardrails should scan appsettings files.`);
+    assertContains(errors, runner, "password=postgres", `${variant.id} generated security guardrails should detect default PostgreSQL passwords.`);
+  }
+
+  if (variant.guardrails === "strict" && variant.ai === "enterprise") {
+    assertExists(errors, join(output, ".ai", "policies", "strict-mode.md"), `${variant.id} strict enterprise output should include strict policy.`);
+    assertExists(errors, join(output, ".ai", "guardrails", "strict-rules.md"), `${variant.id} strict enterprise output should include strict rules.`);
+  } else {
+    assertMissing(errors, join(output, ".ai", "policies", "strict-mode.md"), `${variant.id} should not include strict policy outside strict enterprise output.`);
+    assertMissing(errors, join(output, ".ai", "guardrails", "strict-rules.md"), `${variant.id} should not include strict rules outside strict enterprise output.`);
+  }
+
+  if (variant.guardrails === "strict") {
+    assertContains(errors, runner, "readForbiddenActions", `${variant.id} strict guardrails should parse or load forbidden actions.`);
+    assertContains(errors, runner, "Blocked forbidden path detected", `${variant.id} strict guardrails should enforce blocked forbidden paths.`);
+    assertContains(errors, runner, "Approval-required forbidden path detected", `${variant.id} strict guardrails should fail approval-required forbidden paths in CI.`);
+  }
+}
+
+function assertHookSemantics(errors, output, variant) {
+  const lefthook = join(output, "lefthook.yml");
+
+  if (variant.hooks !== "lefthook") {
+    assertMissing(errors, lefthook, `${variant.id} hooks=none variant should not include lefthook.yml.`);
+    return;
+  }
+
+  assertExists(errors, lefthook, `${variant.id} hooks=lefthook variant should include lefthook.yml.`);
+  if (variant.guardrails === "off") {
+    assertContains(errors, lefthook, "dotnet build -c Release", `${variant.id} guardrails=off lefthook should run dotnet build.`);
+    assertContains(errors, lefthook, "dotnet test -c Release --no-build", `${variant.id} guardrails=off lefthook should run dotnet test.`);
+    assertNotContains(errors, lefthook, "npm run check", `${variant.id} guardrails=off lefthook should not call npm guardrails.`);
+  } else {
+    assertContains(errors, lefthook, "npm run check", `${variant.id} guardrails=${variant.guardrails} lefthook should run npm guardrails.`);
+  }
+}
+
+function assertSkillSemantics(errors, output, variant) {
+  const coreSkills = [
+    "docs-writer",
+    "dotnet-architecture-review",
+    "dotnet-module",
+    "dotnet-vertical-slice",
+    "module-manifest",
+    "spec-driven-feature"
+  ];
+  const enterpriseOnly = [
+    "competitive-review",
+    "efcore-migration-review",
+    "guardrail-runner",
+    "module-manifest-review",
+    "openapi-contract-review",
+    "security-review"
+  ];
+  const enterpriseSkills = [...coreSkills, ...enterpriseOnly];
+
+  if (variant.ai !== "enterprise" || variant.skills === "none") {
+    assertMissing(errors, join(output, ".agents", "skills"), `${variant.id} should not include .agents/skills.`);
+    assertNotContains(errors, join(output, "README.md"), "Skills:", `${variant.id} README should not report generated skills when skills are not emitted.`);
+    assertNotContains(errors, join(output, ".ai", "README.md"), ".agents/skills", `${variant.id} AI README should not describe removed skills.`);
+    return;
+  }
+
+  const expected = variant.skills === "core" ? coreSkills : enterpriseSkills;
+  for (const skill of expected) {
+    const skillFile = join(output, ".agents", "skills", skill, "SKILL.md");
+    assertExists(errors, skillFile, `${variant.id} skills=${variant.skills} missing ${skill}.`);
+
+    if (existsSync(skillFile)) {
+      const content = readAbsolute(skillFile);
+      const referencedDocs = [...content.matchAll(/`(docs\/[^`]+\.md)`/g)].map(match => match[1]);
+      for (const doc of referencedDocs) {
+        assertExists(errors, join(output, doc), `${variant.id} ${skill} references missing ${doc}.`);
+      }
+    }
+  }
+
+  if (variant.skills === "core") {
+    for (const skill of enterpriseOnly) {
+      assertMissing(errors, join(output, ".agents", "skills", skill), `${variant.id} skills=core should not include enterprise-only ${skill}.`);
+    }
+  }
+}
+
+function assertDocsSemantics(errors, output, variant) {
+  for (const file of ["docs/getting-started.md", "docs/architecture.md", "docs/development.md", "docs/module-manifest.md"]) {
+    assertExists(errors, join(output, file), `${variant.id} should include standard doc ${file}.`);
+  }
+
+  if (variant.docs === "standard") {
+    for (const file of ["docs/security.md", "docs/operations.md", "docs/adr", "docs/ai-development"]) {
+      assertMissing(errors, join(output, file), `${variant.id} docs=standard should not include expanded ${file}.`);
+    }
+    return;
+  }
+
+  for (const file of ["docs/security.md", "docs/operations.md", "docs/adr/0001-modular-monolith.md"]) {
+    assertExists(errors, join(output, file), `${variant.id} docs=full should include ${file}.`);
+  }
+
+  if (variant.ai === "none") {
+    assertMissing(errors, join(output, "docs", "ai-development"), `${variant.id} ai=none should not include AI-specific docs.`);
+  } else if (variant.ai === "agents") {
+    for (const file of ["agent-operating-model.md", "ai-pr-protocol.md"]) {
+      assertExists(errors, join(output, "docs", "ai-development", file), `${variant.id} ai=agents docs=full should include basic AI doc ${file}.`);
+    }
+    for (const file of ["guardrails.md", "skills.md", "spec-driven-development.md", "workflows.md"]) {
+      assertMissing(errors, join(output, "docs", "ai-development", file), `${variant.id} ai=agents should not include enterprise AI doc ${file}.`);
+    }
+  } else {
+    for (const file of ["agent-operating-model.md", "ai-pr-protocol.md", "guardrails.md", "skills.md", "spec-driven-development.md", "workflows.md"]) {
+      assertExists(errors, join(output, "docs", "ai-development", file), `${variant.id} ai=enterprise docs=full should include ${file}.`);
+    }
+  }
+}
+
+function assertLicenseSemantics(errors, output, variant) {
+  const license = join(output, "LICENSE");
+  const readme = join(output, "README.md");
+  const packageJson = join(output, "package.json");
+
+  assertExists(errors, license, `${variant.id} should include LICENSE.`);
+  assertContains(errors, readme, `License: \`${variant.licenseExpression}\``, `${variant.id} README should report ${variant.licenseExpression}.`);
+
+  if (variant.license === "apache2") {
+    assertContains(errors, license, "Apache License", `${variant.id} apache2 license should contain Apache License.`);
+    assertContains(errors, license, "Version 2.0", `${variant.id} apache2 license should contain Version 2.0.`);
+    assertNotContains(errors, license, "MIT License", `${variant.id} apache2 license should not contain MIT License.`);
+  } else {
+    assertContains(errors, license, "MIT License", `${variant.id} mit license should contain MIT License.`);
+    assertContains(errors, license, "Permission is hereby granted", `${variant.id} mit license should contain MIT grant text.`);
+    assertNotContains(errors, license, "Apache License", `${variant.id} mit license should not contain Apache License.`);
+  }
+
+  if (existsSync(packageJson)) {
+    assertContains(errors, packageJson, `"license": "${variant.licenseExpression}"`, `${variant.id} package metadata should report ${variant.licenseExpression}.`);
   }
 }
 
@@ -444,14 +654,21 @@ async function checkTemplateSmoke() {
   }
 
   const matrix = [
-    { id: "core-core", name: "Smoke.CoreCore", profile: "core", mediator: "core", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "core", "--mediator", "core"] },
-    { id: "core-mediatr", name: "Smoke.CoreMediatR", profile: "core", mediator: "mediatr", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "core", "--mediator", "mediatr"] },
-    { id: "pro-core", name: "Smoke.ProCore", profile: "pro", mediator: "core", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "pro", "--mediator", "core"] },
-    { id: "pro-mediatr", name: "Smoke.ProMediatR", profile: "pro", mediator: "mediatr", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "pro", "--mediator", "mediatr"] },
-    { id: "advanced-core", name: "Smoke.AdvancedCore", profile: "advanced", mediator: "core", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "advanced", "--mediator", "core"] },
-    { id: "advanced-mediatr", name: "Smoke.AdvancedMediatR", profile: "advanced", mediator: "mediatr", sample: "none", guardrails: "standard", hooks: "none", args: ["--profile", "advanced", "--mediator", "mediatr"] },
-    { id: "taskhub", name: "Aegis.TaskHub", profile: "pro", mediator: "core", sample: "taskhub", guardrails: "standard", hooks: "none", args: ["--profile", "pro", "--sample", "taskhub"] },
-    { id: "strict-enterprise", name: "Smoke.StrictEnterprise", profile: "advanced", mediator: "core", sample: "none", guardrails: "strict", hooks: "lefthook", args: ["--profile", "advanced", "--ai", "enterprise", "--guardrails", "strict", "--hooks", "lefthook"] }
+    { id: "core-core", name: "Smoke.CoreCore", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--mediator", "core"] },
+    { id: "core-mediatr", name: "Smoke.CoreMediatR", profile: "core", mediator: "mediatr", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--mediator", "mediatr"] },
+    { id: "pro-core", name: "Smoke.ProCore", profile: "pro", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "pro", "--mediator", "core"] },
+    { id: "pro-mediatr", name: "Smoke.ProMediatR", profile: "pro", mediator: "mediatr", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "pro", "--mediator", "mediatr"] },
+    { id: "advanced-core", name: "Smoke.AdvancedCore", profile: "advanced", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "advanced", "--mediator", "core"] },
+    { id: "advanced-mediatr", name: "Smoke.AdvancedMediatR", profile: "advanced", mediator: "mediatr", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "advanced", "--mediator", "mediatr"] },
+    { id: "taskhub", name: "Aegis.TaskHub", profile: "pro", mediator: "core", sample: "taskhub", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "pro", "--sample", "taskhub"] },
+    { id: "strict-enterprise", name: "Smoke.StrictEnterprise", profile: "advanced", mediator: "core", sample: "none", ai: "enterprise", guardrails: "strict", hooks: "lefthook", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "advanced", "--ai", "enterprise", "--guardrails", "strict", "--hooks", "lefthook"] },
+    { id: "ai-none", name: "Smoke.AiNone", profile: "core", mediator: "core", sample: "none", ai: "none", guardrails: "standard", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "none", "--guardrails", "standard", "--docs", "full"] },
+    { id: "ai-agents", name: "Smoke.AiAgents", profile: "core", mediator: "core", sample: "none", ai: "agents", guardrails: "standard", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "agents", "--guardrails", "standard", "--docs", "full"] },
+    { id: "strict-ai-agents", name: "Smoke.StrictAiAgents", profile: "core", mediator: "core", sample: "none", ai: "agents", guardrails: "strict", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "agents", "--guardrails", "strict", "--docs", "full"] },
+    { id: "guardrails-off-lefthook", name: "Smoke.GuardrailsOff", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "off", hooks: "lefthook", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "enterprise", "--guardrails", "off", "--hooks", "lefthook"] },
+    { id: "skills-none-docs-standard", name: "Smoke.SkillsNoneDocsStandard", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "none", docs: "standard", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "enterprise", "--skills", "none", "--docs", "standard", "--guardrails", "standard"] },
+    { id: "skills-core-docs-standard", name: "Smoke.SkillsCoreDocsStandard", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "core", docs: "standard", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "enterprise", "--skills", "core", "--docs", "standard", "--guardrails", "standard"] },
+    { id: "skills-core-license-mit", name: "Smoke.SkillsCoreLicenseMit", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "core", docs: "full", license: "mit", licenseExpression: "MIT", args: ["--profile", "core", "--ai", "enterprise", "--skills", "core", "--license", "mit", "--guardrails", "standard"] }
   ];
 
   for (const variant of matrix) {
@@ -489,6 +706,12 @@ async function checkTemplateSmoke() {
     assertGeneratedOptions(errors, output, variant);
     assertMediatorSemantics(errors, output, variant);
     assertProfileSemantics(errors, output, variant);
+    assertAiSemantics(errors, output, variant);
+    assertGuardrailSemantics(errors, output, variant);
+    assertHookSemantics(errors, output, variant);
+    assertSkillSemantics(errors, output, variant);
+    assertDocsSemantics(errors, output, variant);
+    assertLicenseSemantics(errors, output, variant);
 
     if (variant.id === "taskhub") {
       for (const moduleName of ["Projects", "Tasks", "Notifications", "Audit"]) {
@@ -513,15 +736,13 @@ async function checkTemplateSmoke() {
       if (existsSync(projectManifest)) {
         errors.push("Core sample-none variant should not include TaskHub Projects module.");
       }
-      if (existsSync(join(output, "lefthook.yml"))) {
-        errors.push("hooks=none variant should not include lefthook.yml.");
-      }
     }
 
-    if (variant.hooks === "lefthook") {
-      assertExists(errors, join(output, "lefthook.yml"), `${variant.id} hooks=lefthook variant should include lefthook.yml.`);
-    } else {
-      assertMissing(errors, join(output, "lefthook.yml"), `${variant.id} hooks=none variant should not include lefthook.yml.`);
+    if (variant.guardrails !== "off") {
+      code = await runCommand(process.execPath, ["tools/guardrails/check.mjs", "all"], { cwd: output, env: smokeEnv });
+      if (code !== 0) {
+        return fail("template smoke", [`Generated guardrails failed for ${variant.id}.`]);
+      }
     }
   }
 

@@ -49,7 +49,7 @@ dotnet new aegis-modulith \
 --hooks none|lefthook
 --skills none|core|enterprise
 --docs standard|full
---license apache2
+--license apache2|mit
 ```
 
 ## Profile: core
