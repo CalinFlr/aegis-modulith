@@ -1,0 +1,23 @@
+{
+  "name": "Tasks",
+  "schema": "tasks",
+  "type": "business-module",
+  "owner": "core",
+  "dependencies": [
+    "Projects.Contracts"
+  ],
+  "publicContracts": [
+    "TaskAssignedIntegrationEvent",
+    "TaskCompletedIntegrationEvent"
+  ],
+  "features": [
+    "CreateTask",
+    "AssignTask",
+    "CompleteTask",
+    "ListProjectTasks"
+  ],
+  "rules": {
+    "allowCrossModuleDatabaseAccess": false,
+    "allowInfrastructureReferences": false
+  }
+}

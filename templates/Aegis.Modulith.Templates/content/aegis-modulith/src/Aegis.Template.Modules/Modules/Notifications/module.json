@@ -1,0 +1,20 @@
+{
+  "name": "Notifications",
+  "schema": "notifications",
+  "type": "business-module",
+  "owner": "taskhub",
+  "dependencies": [
+    "Tasks.Contracts"
+  ],
+  "publicContracts": [
+    "NotificationQueuedIntegrationEvent"
+  ],
+  "features": [
+    "QueueNotification",
+    "ListNotifications"
+  ],
+  "rules": {
+    "allowCrossModuleDatabaseAccess": false,
+    "allowInfrastructureReferences": false
+  }
+}

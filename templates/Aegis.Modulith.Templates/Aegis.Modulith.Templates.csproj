@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Aegis.Modulith.Templates</PackageId>
+    <PackageVersion>0.1.0-alpha.1</PackageVersion>
+    <Authors>Aegis.Modulith contributors</Authors>
+    <Description>dotnet new templates for API-only modular monoliths with CQRS-lite, PostgreSQL, vertical slices, module manifests, and AI guardrails.</Description>
+    <PackageTags>dotnet-new;template;modular-monolith;cqrs;postgresql;vertical-slice</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/aegis-modulith/aegis-modulith</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/aegis-modulith/aegis-modulith</RepositoryUrl>
+    <PackageType>Template</PackageType>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <ContentTargetFolders>content</ContentTargetFolders>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="content\**\*.cs" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <Content Include="content\**\*" Exclude="content\**\bin\**;content\**\obj\**" />
+  </ItemGroup>
+</Project>

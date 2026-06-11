@@ -1,0 +1,18 @@
+{
+  "name": "Projects",
+  "schema": "projects",
+  "type": "business-module",
+  "owner": "taskhub",
+  "dependencies": [],
+  "publicContracts": [
+    "ProjectCreatedIntegrationEvent"
+  ],
+  "features": [
+    "CreateProject",
+    "GetProjectById"
+  ],
+  "rules": {
+    "allowCrossModuleDatabaseAccess": false,
+    "allowInfrastructureReferences": false
+  }
+}

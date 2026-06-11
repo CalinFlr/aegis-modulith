@@ -1,0 +1,23 @@
+<Project>
+  <PropertyGroup>
+    <AegisProfile>AegisProfileValue</AegisProfile>
+    <AegisMediator>AegisMediatorValue</AegisMediator>
+    <AegisDatabase>AegisDatabaseValue</AegisDatabase>
+    <AegisSample>AegisSampleValue</AegisSample>
+    <AegisGuardrails>AegisGuardrailsValue</AegisGuardrails>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(AegisMediator)' == 'mediatr'">
+    <DefineConstants>$(DefineConstants);AEGIS_MEDIATR</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(AegisProfile)' != 'core'">
+    <DefineConstants>$(DefineConstants);AEGIS_PRO_OR_ADVANCED</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(AegisProfile)' == 'advanced'">
+    <DefineConstants>$(DefineConstants);AEGIS_ADVANCED</DefineConstants>
+  </PropertyGroup>
+</Project>

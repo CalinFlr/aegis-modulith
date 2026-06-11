@@ -1,0 +1,30 @@
+# .NET
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+*.rsuser
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Local env/secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+secrets/
+
+# OS/IDE
+.DS_Store
+.vscode/.ropeproject
+.idea/
+.codex/
+
+# Generated packages
+artifacts/
+*.nupkg
