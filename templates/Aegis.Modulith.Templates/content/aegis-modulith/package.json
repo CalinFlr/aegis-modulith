@@ -1,0 +1,16 @@
+{
+  "name": "aegis-template",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node tools/guardrails/check.mjs all",
+    "check:ai": "node tools/guardrails/check.mjs ai",
+    "check:docs": "node tools/guardrails/check.mjs docs",
+    "check:security": "node tools/guardrails/check.mjs security",
+    "check:specs": "node tools/guardrails/check.mjs specs",
+    "check:manifests": "node tools/guardrails/check.mjs manifests"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
