@@ -2,23 +2,29 @@
 
 ## Purpose
 
-Review an AI-assisted change before merge.
+Standard agent workflow for pre-pr review.
 
 ## Steps
 
-1. Summarize changed files and behavior.
-2. Check architecture rules.
-3. Check docs and OpenQuestions updates.
-4. Run required validation.
-5. Report residual risk.
+1. Run `dotnet restore`, `dotnet build -c Release`, and `dotnet test -c Release`.
+2. Run generated guardrail scripts when they exist.
+3. Run template smoke tests when the template smoke script exists.
+4. Review docs/ADR changes.
+5. Summarize risks.
+6. Ensure git status is clean except intended changes.
 
 ## Required validation
 
 ```bash
-npm run check
+dotnet restore
+dotnet build -c Release
 dotnet test -c Release
 ```
 
-## Human approval
+## Human approval required when
 
-Required for high and critical risk areas.
+- Auth/authz changes.
+- New production dependency.
+- EF migration.
+- Public API breaking change.
+- CI/release changes.

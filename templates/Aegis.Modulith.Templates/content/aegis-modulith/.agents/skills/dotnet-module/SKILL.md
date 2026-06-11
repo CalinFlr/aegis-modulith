@@ -3,21 +3,31 @@ name: dotnet-module
 description: Use when creating or changing a business module.
 ---
 
-# .NET Module
+# dotnet-module
 
 ## Goal
 
-Create or change a business module while preserving ownership boundaries.
+Use when creating or changing a business module.
+
+## Required context
+
+Read `AGENTS.md` first. Then read the relevant file under `.ai/workflows` and `.ai/policies`.
 
 ## Procedure
 
-- Keep Infrastructure private to the module.
-- Keep schema and DbContext ownership inside the module.
-- Update `module.json`.
-- Add focused tests.
+- Create module with Features, Domain, Infrastructure, Contracts.
+- Own schema and DbContext.
+- Avoid cross-module Infrastructure references.
+- Add architecture tests.
 
 ## Validation
 
+Run the smallest relevant checks, and before completion run:
+
 ```bash
-dotnet test -c Release
+npm run check
 ```
+
+## Final response
+
+Report files changed, validation commands, risks, and remaining limitations.
