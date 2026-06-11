@@ -1,5 +1,5 @@
 #if AEGIS_PRO_OR_ADVANCED
-var builder = DistributedApplication.CreateBuilder(args);
+var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
 
 builder.Build().Run();
 #else

@@ -23,8 +23,10 @@ function listFiles(dir, predicate = () => true) {
   const abs = join(root, dir);
   if (!existsSync(abs)) return [];
   const out = [];
+  const ignoredDirectories = new Set([".git", "artifacts", "bin", "obj"]);
   function walk(current) {
     for (const entry of readdirSync(current)) {
+      if (ignoredDirectories.has(entry)) continue;
       const full = join(current, entry);
       const st = statSync(full);
       if (st.isDirectory()) walk(full);
@@ -322,7 +324,8 @@ async function checkTemplateSmoke() {
       variant.name,
       ...variant.args,
       "-o",
-      output
+      output,
+      "--force"
     ], { env: smokeEnv });
     if (code !== 0) {
       return fail("template smoke", [`Generation failed for ${variant.id}.`]);
@@ -403,7 +406,7 @@ async function checkTemplateSmoke() {
   ];
 
   for (const item of itemChecks) {
-    code = await runCommand("dotnet", item.args, { env: smokeEnv });
+    code = await runCommand("dotnet", [...item.args, "--force"], { env: smokeEnv });
     if (code !== 0) {
       return fail("template smoke", [`Item template generation failed for ${item.id}.`]);
     }

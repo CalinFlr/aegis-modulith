@@ -15,8 +15,11 @@ public sealed class AuditModule : IAegisModule
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("Postgres")
+            ?? throw new InvalidOperationException("ConnectionStrings:Postgres must be configured for the Audit module.");
+
         services.AddDbContext<AuditDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("Postgres") ?? DefaultConnectionString));
+            options.UseNpgsql(connectionString));
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -27,6 +30,4 @@ public sealed class AuditModule : IAegisModule
             status = "append-only-ready"
         })).WithTags(Name).WithName("ListAuditEntries");
     }
-
-    private const string DefaultConnectionString = "Host=localhost;Port=5432;Database=aegis_template;Username=postgres;Password=postgres";
 }

@@ -21,7 +21,9 @@ public static class DispatchingServiceCollectionExtensions
         });
         services.AddScoped<ICommandDispatcher, MediatRCommandDispatcher>();
         services.AddScoped<IQueryDispatcher, MediatRQueryDispatcher>();
-#else
+#endif
+
+#if AEGIS_CORE_MEDIATOR
         foreach (var assembly in handlerAssemblies)
         {
             RegisterCoreHandlers(services, assembly);
@@ -34,7 +36,7 @@ public static class DispatchingServiceCollectionExtensions
         return services;
     }
 
-#if !AEGIS_MEDIATR
+#if AEGIS_CORE_MEDIATOR
     private static void RegisterCoreHandlers(IServiceCollection services, Assembly assembly)
     {
         foreach (var implementationType in assembly.GetTypes().Where(type => type is { IsClass: true, IsAbstract: false }))
@@ -72,7 +74,9 @@ public static class DispatchingServiceCollectionExtensions
             return handler.Handle((dynamic)query, cancellationToken);
         }
     }
-#else
+#endif
+
+#if AEGIS_MEDIATR
     private sealed class MediatRCommandDispatcher(ISender sender) : ICommandDispatcher
     {
         public Task<TResponse> Send<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken = default)
