@@ -461,10 +461,14 @@ function assertItemModuleSemantics(errors, moduleRoot, variant) {
   assertContains(errors, moduleClass, "class BillingModule : IAegisModule", `${variant.id} module class should implement IAegisModule.`);
   assertContains(errors, moduleClass, "services.AddBillingInfrastructure(configuration);", `${variant.id} module class should call module service registration.`);
   assertContains(errors, moduleClass, "endpoints.MapGroup(\"/billing\")", `${variant.id} module class should map a module route group from schema.`);
+  assertContains(errors, moduleClass, "MapFeatureEndpoints(group)", `${variant.id} module class should map generated feature endpoints.`);
+  assertContains(errors, moduleClass, "BindingFlags.Public | BindingFlags.Static", `${variant.id} module class should discover generated slice endpoint methods.`);
   assertContains(errors, dbContext, ": DbContext", `${variant.id} module DbContext should derive from DbContext.`);
   assertContains(errors, dbContext, "DbSet<BillingEntity>", `${variant.id} module DbContext should expose a module DbSet.`);
   assertContains(errors, dbContext, "modelBuilder.HasDefaultSchema(Schema)", `${variant.id} module DbContext should set the module schema.`);
   assertContains(errors, serviceRegistration, "UseNpgsql", `${variant.id} module service registration should configure PostgreSQL.`);
+  assertContains(errors, serviceRegistration, "Connection string 'Postgres' is required", `${variant.id} module service registration should fail fast without Postgres configuration.`);
+  assertNotContains(errors, serviceRegistration, "Password=postgres", `${variant.id} module service registration should not include a default database password.`);
 
   try {
     const manifest = JSON.parse(readAbsolute(manifestPath));
@@ -502,6 +506,7 @@ function assertItemSliceSemantics(errors, moduleRoot, variant) {
   assertContains(errors, command, "ICommand<CreateInvoiceResponse>", `${variant.id} command slice should implement ICommand<TResponse>.`);
   assertContains(errors, commandHandler, "ICommandHandler<CreateInvoiceCommand, CreateInvoiceResponse>", `${variant.id} command handler should implement generated command handler contract.`);
   assertContains(errors, commandEndpoint, "ICommandDispatcher", `${variant.id} command endpoint should dispatch through ICommandDispatcher.`);
+  assertContains(errors, commandEndpoint, "RouteGroupBuilder MapCreateInvoice", `${variant.id} command endpoint should expose a discoverable route group mapper.`);
   assertContains(errors, commandValidator, "IValidator<CreateInvoiceCommand>", `${variant.id} command slice should include validation convention.`);
   assertContains(errors, commandHandler, "handler tests", `${variant.id} command slice should document the test next step.`);
 
@@ -511,6 +516,7 @@ function assertItemSliceSemantics(errors, moduleRoot, variant) {
   assertContains(errors, query, "PageSize", `${variant.id} list query should include PageSize.`);
   assertContains(errors, queryHandler, "IQueryHandler<ListInvoicesQuery, ListInvoicesResponse>", `${variant.id} query handler should implement generated query handler contract.`);
   assertContains(errors, queryEndpoint, "IQueryDispatcher", `${variant.id} query endpoint should dispatch through IQueryDispatcher.`);
+  assertContains(errors, queryEndpoint, "RouteGroupBuilder MapListInvoices", `${variant.id} query endpoint should expose a discoverable route group mapper.`);
   assertContains(errors, queryEndpoint, "[AsParameters] ListInvoicesQuery query", `${variant.id} list query endpoint should bind pagination shape.`);
   assertContains(errors, queryResponse, "IReadOnlyList<ListInvoicesItemResponse>", `${variant.id} list query response should include paged item shape.`);
   assertContains(errors, queryHandler, "handler tests", `${variant.id} query slice should document the test next step.`);
@@ -548,11 +554,16 @@ function assertItemEventSemantics(errors, moduleRoot, variant) {
 
 function assertItemWorkerSemantics(errors, workerRoot) {
   const worker = join(workerRoot, "BillingOutboxDispatcher.cs");
+  const workerProject = join(workerRoot, "BillingOutboxDispatcher.csproj");
   const services = join(workerRoot, "BillingOutboxDispatcherServiceCollectionExtensions.cs");
   const program = join(workerRoot, "Program.cs");
+  const packageProps = join(workerRoot, "Directory.Packages.props");
 
   assertExists(errors, worker, "worker item should generate a worker class named after the item.");
+  assertExists(errors, workerProject, "worker item should generate a worker project.");
   assertExists(errors, services, "worker item should generate a DI registration extension.");
+  assertMissing(errors, packageProps, "worker item should not emit Directory.Packages.props into the output folder.");
+  assertContains(errors, workerProject, `PackageReference Include="Microsoft.Extensions.Hosting"`, "worker project should use the generated app central package version.");
   assertContains(errors, worker, "class BillingOutboxDispatcher", "worker item should name the BackgroundService after the requested worker.");
   assertContains(errors, worker, ": BackgroundService", "worker item should derive from BackgroundService.");
   assertContains(errors, worker, "ILogger<BillingOutboxDispatcher>", "worker item should use logging.");
@@ -924,7 +935,7 @@ async function checkTemplateSmoke() {
     }
   }
 
-  const itemCompatibilityIds = new Set(["core-core", "pro-core", "advanced-core", "pro-mediatr", "advanced-mediatr"]);
+  const itemCompatibilityIds = new Set(["core-core", "core-mediatr", "pro-core", "advanced-core", "pro-mediatr", "advanced-mediatr"]);
   const itemCompatibilityVariants = matrix.filter(variant => itemCompatibilityIds.has(variant.id));
 
   for (const variant of itemCompatibilityVariants) {
@@ -1038,17 +1049,16 @@ async function checkTemplateSmoke() {
     assertNoTemplateTokens(errors, moduleRoot, `${variant.id} item template output`);
   }
 
-  const workerRoot = join(itemRoot, "worker");
+  const workerAppRoot = join(generatedRoot, "core-core");
+  const workerRoot = join(workerAppRoot, "BillingOutboxDispatcher");
   code = await runCommand("dotnet", [
     "new",
     "aegis-worker",
     "-n",
     "BillingOutboxDispatcher",
     "--module",
-    "Billing",
-    "-o",
-    workerRoot
-  ], { env: smokeEnv });
+    "Billing"
+  ], { cwd: workerAppRoot, env: smokeEnv });
   if (code !== 0) {
     return fail("template smoke", ["aegis-worker generation failed."]);
   }
