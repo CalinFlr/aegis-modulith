@@ -21,6 +21,7 @@
       "source": "./",
       "target": "./",
       "exclude": [
+        "LICENSE",
         "LICENSE.apache2",
         "LICENSE.mit"
       ],

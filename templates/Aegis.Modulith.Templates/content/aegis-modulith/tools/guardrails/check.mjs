@@ -34,9 +34,11 @@ function listFiles(dir, predicate = () => true) {
   const abs = join(root, dir);
   if (!existsSync(abs)) return [];
   const found = [];
+  const ignoredDirectories = new Set([".git", "artifacts", "bin", "node_modules", "obj"]);
 
   function walk(current) {
     for (const entry of readdirSync(current)) {
+      if (ignoredDirectories.has(entry)) continue;
       const full = join(current, entry);
       const st = statSync(full);
       if (st.isDirectory()) walk(full);
@@ -63,6 +65,51 @@ function assertContains(errors, path, expected, message) {
   }
 
   if (!read(path).includes(expected)) errors.push(message);
+}
+
+function readForbiddenActions(errors) {
+  const path = ".ai/policies/forbidden-actions.yaml";
+  if (!exists(path)) {
+    errors.push("guardrails=strict with ai=enterprise must include forbidden action policy.");
+    return [];
+  }
+
+  const entries = [];
+  let current = null;
+  for (const line of read(path).split(/\r?\n/)) {
+    const item = line.match(/^\s*-\s+(pattern|path):\s*"([^"]+)"\s*$/);
+    if (item) {
+      current = { [item[1]]: item[2] };
+      entries.push(current);
+      continue;
+    }
+
+    const property = line.match(/^\s+(reason|requiresApproval|block):\s*(?:"([^"]+)"|(true|false))\s*$/);
+    if (property && current) {
+      current[property[1]] = property[2] ?? property[3] === "true";
+    }
+  }
+
+  if (entries.length === 0) {
+    errors.push("forbidden-actions.yaml must contain at least one forbidden entry.");
+  }
+
+  for (const entry of entries) {
+    if (!entry.pattern && !entry.path) errors.push("Every forbidden action entry must define pattern or path.");
+    if (!entry.reason && entry.pattern) errors.push(`Forbidden pattern ${entry.pattern} must include a reason.`);
+    if (entry.block !== true && entry.requiresApproval !== true) {
+      errors.push(`Forbidden entry ${entry.pattern ?? entry.path} must set block or requiresApproval.`);
+    }
+  }
+
+  return entries;
+}
+
+function matchesForbiddenPath(pattern, file) {
+  if (pattern === "**/.env") return file === ".env" || file.endsWith("/.env");
+  if (pattern === "**/*secret*") return file.toLowerCase().includes("secret");
+  if (pattern.endsWith("/**")) return file.startsWith(pattern.slice(0, -3));
+  return file === pattern;
 }
 
 async function runCommand(command, args) {
@@ -293,7 +340,7 @@ function checkSpecs() {
 
 function checkModuleManifests() {
   const errors = [];
-  const manifests = listFiles("src", file => file.endsWith("/module.json"));
+  const manifests = listFiles(".", file => file.replaceAll("\\", "/").endsWith("/module.json"));
 
   if (manifests.length === 0) {
     errors.push("No generated module.json manifests found under src/.");
@@ -333,7 +380,26 @@ function checkStrict() {
     assertExists(errors, ".ai/guardrails/strict-rules.md", "guardrails=strict with ai=enterprise must include strict rules.");
     assertContains(errors, ".ai/guardrails/strict-rules.md", "sensitive files", "strict rules must explain sensitive-file checks.");
     assertContains(errors, "AGENTS.md", "specs/", "strict enterprise AGENTS.md must mention specs/.");
-    assertExists(errors, ".ai/policies/forbidden-actions.yaml", "strict enterprise output must include forbidden action policy.");
+    const forbiddenEntries = readForbiddenActions(errors);
+    const sourceFiles = listFiles(".", file => !file.replaceAll("\\", "/").endsWith("/.ai/policies/forbidden-actions.yaml"));
+
+    for (const entry of forbiddenEntries) {
+      if (entry.pattern) {
+        for (const file of sourceFiles) {
+          if (read(file).includes(entry.pattern)) {
+            errors.push(`Forbidden content pattern ${entry.pattern} detected in ${file}.`);
+          }
+        }
+      }
+
+      if (entry.path && entry.block === true) {
+        for (const file of sourceFiles) {
+          if (matchesForbiddenPath(entry.path, file)) {
+            errors.push(`Blocked forbidden path detected: ${file}.`);
+          }
+        }
+      }
+    }
   } else {
     assertMissing(errors, ".ai", "Non-enterprise strict guardrails should not generate enterprise .ai assets.");
   }

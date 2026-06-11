@@ -28,7 +28,7 @@ function listFiles(dir, predicate = () => true) {
   const abs = join(root, dir);
   if (!existsSync(abs)) return [];
   const out = [];
-  const ignoredDirectories = new Set([".git", "artifacts", "bin", "obj"]);
+  const ignoredDirectories = new Set([".git", "artifacts", "bin", "node_modules", "obj"]);
   function walk(current) {
     for (const entry of readdirSync(current)) {
       if (ignoredDirectories.has(entry)) continue;
@@ -227,11 +227,13 @@ function assertGuardrailSemantics(errors, output, variant) {
   const runner = join(output, "tools", "guardrails", "check.mjs");
   const packageJson = join(output, "package.json");
   const ci = join(output, ".github", "workflows", "ci.yml");
+  const readme = join(output, "README.md");
 
   if (variant.guardrails === "off") {
     assertMissing(errors, runner, `${variant.id} guardrails=off should not include the Node guardrail runner.`);
     assertMissing(errors, packageJson, `${variant.id} guardrails=off should not include guardrail package scripts.`);
     assertNotContains(errors, ci, "npm run check", `${variant.id} guardrails=off CI should not run guardrails.`);
+    assertNotContains(errors, readme, "npm run check", `${variant.id} guardrails=off README should not tell users to run npm guardrails.`);
   } else {
     assertExists(errors, runner, `${variant.id} guardrails=${variant.guardrails} should include the Node guardrail runner.`);
     assertExists(errors, packageJson, `${variant.id} guardrails=${variant.guardrails} should include package.json.`);
@@ -239,11 +241,17 @@ function assertGuardrailSemantics(errors, output, variant) {
       assertContains(errors, packageJson, script, `${variant.id} package.json should include ${script}.`);
     }
     assertContains(errors, ci, "npm run check", `${variant.id} CI should run generated guardrails.`);
+    assertContains(errors, runner, "\"node_modules\"", `${variant.id} generated guardrails should ignore node_modules.`);
+    assertContains(errors, runner, "\".git\"", `${variant.id} generated guardrails should ignore .git.`);
+    assertContains(errors, runner, "\"bin\"", `${variant.id} generated guardrails should ignore bin.`);
+    assertContains(errors, runner, "\"obj\"", `${variant.id} generated guardrails should ignore obj.`);
   }
 
   if (variant.guardrails === "strict" && variant.ai === "enterprise") {
     assertExists(errors, join(output, ".ai", "policies", "strict-mode.md"), `${variant.id} strict enterprise output should include strict policy.`);
     assertExists(errors, join(output, ".ai", "guardrails", "strict-rules.md"), `${variant.id} strict enterprise output should include strict rules.`);
+    assertContains(errors, runner, "readForbiddenActions", `${variant.id} strict guardrails should parse forbidden-actions.yaml.`);
+    assertContains(errors, runner, "Blocked forbidden path detected", `${variant.id} strict guardrails should enforce blocked forbidden paths.`);
   } else {
     assertMissing(errors, join(output, ".ai", "policies", "strict-mode.md"), `${variant.id} should not include strict policy outside strict enterprise output.`);
     assertMissing(errors, join(output, ".ai", "guardrails", "strict-rules.md"), `${variant.id} should not include strict rules outside strict enterprise output.`);
@@ -289,6 +297,8 @@ function assertSkillSemantics(errors, output, variant) {
 
   if (variant.ai !== "enterprise" || variant.skills === "none") {
     assertMissing(errors, join(output, ".agents", "skills"), `${variant.id} should not include .agents/skills.`);
+    assertNotContains(errors, join(output, "README.md"), "Skills:", `${variant.id} README should not report generated skills when skills are not emitted.`);
+    assertNotContains(errors, join(output, ".ai", "README.md"), ".agents/skills", `${variant.id} AI README should not describe removed skills.`);
     return;
   }
 
