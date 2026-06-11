@@ -6,7 +6,7 @@ namespace Aegis.Template.Modules.Modules.WorkItems.Features.CreateWorkItem;
 
 public sealed class CreateWorkItemHandler(WorkItemsDbContext dbContext) :
     ICommandHandler<CreateWorkItemCommand, CreateWorkItemResponse>
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
     , MediatR.IRequestHandler<CreateWorkItemCommand, CreateWorkItemResponse>
 #endif
 {
@@ -18,7 +18,7 @@ public sealed class CreateWorkItemHandler(WorkItemsDbContext dbContext) :
         return new CreateWorkItemResponse(workItem.Id, workItem.Title, workItem.CreatedAtUtc);
     }
 
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
     async Task<CreateWorkItemResponse> MediatR.IRequestHandler<CreateWorkItemCommand, CreateWorkItemResponse>.Handle(
         CreateWorkItemCommand request,
         CancellationToken cancellationToken) => await Handle(request, cancellationToken);

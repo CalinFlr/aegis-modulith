@@ -6,7 +6,7 @@ namespace Aegis.Template.Modules.Modules.Projects.Features.GetProjectById;
 
 public sealed class GetProjectByIdHandler(ProjectsDbContext dbContext) :
     IQueryHandler<GetProjectByIdQuery, GetProjectByIdResponse?>
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
     , MediatR.IRequestHandler<GetProjectByIdQuery, GetProjectByIdResponse?>
 #endif
 {
@@ -19,7 +19,7 @@ public sealed class GetProjectByIdHandler(ProjectsDbContext dbContext) :
             .SingleOrDefaultAsync(cancellationToken);
     }
 
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
     async Task<GetProjectByIdResponse?> MediatR.IRequestHandler<GetProjectByIdQuery, GetProjectByIdResponse?>.Handle(
         GetProjectByIdQuery request,
         CancellationToken cancellationToken) => await Handle(request, cancellationToken);

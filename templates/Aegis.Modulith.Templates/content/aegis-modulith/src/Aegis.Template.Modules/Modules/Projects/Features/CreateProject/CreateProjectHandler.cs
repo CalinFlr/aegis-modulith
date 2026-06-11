@@ -6,7 +6,7 @@ namespace Aegis.Template.Modules.Modules.Projects.Features.CreateProject;
 
 public sealed class CreateProjectHandler(ProjectsDbContext dbContext) :
     ICommandHandler<CreateProjectCommand, CreateProjectResponse>
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
     , MediatR.IRequestHandler<CreateProjectCommand, CreateProjectResponse>
 #endif
 {
@@ -18,7 +18,7 @@ public sealed class CreateProjectHandler(ProjectsDbContext dbContext) :
         return new CreateProjectResponse(project.Id, project.Name, project.CreatedAtUtc);
     }
 
-#if AEGIS_MEDIATR
+#if (mediator == "mediatr")
     async Task<CreateProjectResponse> MediatR.IRequestHandler<CreateProjectCommand, CreateProjectResponse>.Handle(
         CreateProjectCommand request,
         CancellationToken cancellationToken) => await Handle(request, cancellationToken);

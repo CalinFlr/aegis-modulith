@@ -8,7 +8,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Aegis.Template.BuildingBlocks\Aegis.Template.BuildingBlocks.csproj" />
     <ProjectReference Include="..\Aegis.Template.Modules\Aegis.Template.Modules.csproj" />
-    <ProjectReference Include="..\Aegis.Template.ServiceDefaults\Aegis.Template.ServiceDefaults.csproj" Condition="'$(AegisProfile)' != 'core'" />
+    <!--#if (profile != "core") -->
+    <ProjectReference Include="..\Aegis.Template.ServiceDefaults\Aegis.Template.ServiceDefaults.csproj" />
+    <!--#endif -->
   </ItemGroup>
 
   <ItemGroup>
