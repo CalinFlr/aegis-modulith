@@ -2,23 +2,27 @@
 
 ## Purpose
 
-Create or modify a business module without breaking modular boundaries.
+Standard agent workflow for create module.
 
 ## Steps
 
-1. Read `AGENTS.md`.
-2. Check `OpenQuestions.md`.
-3. Create module files, schema ownership, and `module.json`.
-4. Keep Infrastructure private to the module.
-5. Add or update tests.
+1. Read AGENTS.md and architecture docs.
+2. Choose module name and schema.
+3. Create module project, Contracts, Domain, Infrastructure, Features folders.
+4. Add module registration.
+5. Add architecture tests.
+6. Update docs.
 
 ## Required validation
 
 ```bash
-dotnet build -c Release
-dotnet test -c Release
+npm run check
 ```
 
-## Human approval
+## Human approval required when
 
-Required for public contracts, dependencies, migrations, auth, or security-sensitive behavior.
+- Auth/authz changes.
+- New production dependency.
+- EF migration.
+- Public API breaking change.
+- CI/release changes.

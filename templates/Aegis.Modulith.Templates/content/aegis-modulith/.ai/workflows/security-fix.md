@@ -2,22 +2,26 @@
 
 ## Purpose
 
-Handle security-sensitive changes with explicit review discipline.
+Standard agent workflow for security fix.
 
 ## Steps
 
-1. Avoid secrets and local credential files.
-2. Document the risk and affected area.
-3. Add focused tests.
-4. Run security and full checks.
+1. Classify risk.
+2. Do not expose secrets.
+3. Add regression test.
+4. Run security checks.
+5. Update security docs if needed.
 
 ## Required validation
 
 ```bash
-npm run check:security
 npm run check
 ```
 
-## Human approval
+## Human approval required when
 
-Required before merge.
+- Auth/authz changes.
+- New production dependency.
+- EF migration.
+- Public API breaking change.
+- CI/release changes.

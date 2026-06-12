@@ -3,20 +3,30 @@ name: docs-writer
 description: Use when updating docs, ADRs, workflows, or README.
 ---
 
-# Docs Writer
+# docs-writer
 
 ## Goal
 
-Keep generated repository documentation aligned with implementation and guardrails.
+Use when updating docs, ADRs, workflows, or README.
+
+## Required context
+
+Read `AGENTS.md` first. Then read the relevant file under `.ai/workflows` and `.ai/policies`.
 
 ## Procedure
 
-- Explain decisions and trade-offs.
-- Link docs to relevant guardrails or workflows.
-- Update indexes when new docs are added.
+- Explain decisions, not just steps.
+- Link docs to guardrails.
+- Update indexes.
 
 ## Validation
 
+Run the smallest relevant checks, and before completion run:
+
 ```bash
-npm run check:docs
+npm run check
 ```
+
+## Final response
+
+Report files changed, validation commands, risks, and remaining limitations.

@@ -100,14 +100,14 @@ Enterprise scaffolding:
 
 - Everything in pro.
 - Permission model.
-- JWT auth scaffolding.
+- Auth-ready permission placeholders.
 - Multi-tenancy skeleton.
 - Optional broker-ready structure.
 - Inbox pattern.
 - Contract tests.
 - Performance smoke tests.
 - Deployment skeleton.
-- Strict guardrails.
+- Strict guardrail stance.
 - Optional Lefthook.
 - MCP-ready documentation.
 
