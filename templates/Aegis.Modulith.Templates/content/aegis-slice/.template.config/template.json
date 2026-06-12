@@ -14,7 +14,46 @@
     "language": "C#",
     "type": "item"
   },
+  "sources": [
+    {
+      "source": "./",
+      "target": "./",
+      "modifiers": [
+        {
+          "condition": "(kind == \"command\")",
+          "exclude": [
+            "Features/Aegis.Slice/Aegis.SliceQuery.cs",
+            "Features/Aegis.Slice/Aegis.SliceQueryEndpoint.cs",
+            "Features/Aegis.Slice/Aegis.SliceQueryHandler.cs"
+          ]
+        },
+        {
+          "condition": "(kind == \"query\")",
+          "exclude": [
+            "Features/Aegis.Slice/Aegis.SliceCommand.cs",
+            "Features/Aegis.Slice/Aegis.SliceCommandEndpoint.cs",
+            "Features/Aegis.Slice/Aegis.SliceCommandHandler.cs",
+            "Features/Aegis.Slice/Aegis.SliceCommandValidator.cs"
+          ]
+        }
+      ]
+    }
+  ],
   "symbols": {
+    "rootNamespace": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "Aegis.Template.Modules",
+      "replaces": "AegisItemRootNamespace",
+      "description": "Root namespace of the generated modules project, for example Acme.WorkHub.Modules."
+    },
+    "buildingBlocksNamespace": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "Aegis.Template.BuildingBlocks",
+      "replaces": "AegisBuildingBlocksNamespace",
+      "description": "Namespace of the generated BuildingBlocks project, for example Acme.WorkHub.BuildingBlocks."
+    },
     "module": {
       "type": "parameter",
       "datatype": "text",
@@ -31,6 +70,22 @@
         { "choice": "command", "description": "Command slice." },
         { "choice": "query", "description": "Query slice." }
       ]
+    },
+    "mediator": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "core",
+      "description": "Dispatcher mode used by the generated solution.",
+      "choices": [
+        { "choice": "core", "description": "Core dispatcher." },
+        { "choice": "mediatr", "description": "MediatR adapter." }
+      ]
+    },
+    "paged": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Generate list-query pagination shape when kind=query."
     }
   }
 }

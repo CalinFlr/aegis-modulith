@@ -126,6 +126,21 @@ Use this template:
 - Created: 2026-06-08
 - Resolved: N/A
 
+### Q-20260609-001: Prefer drop-in item templates over automatic solution mutation
+
+- Status: inferred
+- Risk: medium
+- Owner: human
+- Source: P1B item template implementation
+- Affected areas: aegis-module, aegis-slice, aegis-event, aegis-worker, smoke tests, README, CLI docs
+- Question: Should item templates automatically edit generated solution files, or should they generate buildable drop-in outputs with explicit namespace/project options?
+- Context: `dotnet new` item templates are reliable at generating files but are not a good fit for safely mutating `.sln`, project references, or `Program.cs` across all generated profile/mediator combinations.
+- Proposed default: Generate item outputs under the generated modules project using explicit `--rootNamespace`, `--buildingBlocksNamespace`, `--buildingBlocksProject`, and `--mediator` options, then document the expected add/build flow instead of promising automatic solution edits.
+- Impact if different: Automatic insertion would require a separate tool or post-action flow, broader smoke coverage, and more failure handling around solution/project mutation.
+- Current action: implement default
+- Created: 2026-06-09
+- Resolved: N/A
+
 ## Blockers
 
 No known blockers at pack creation time.

@@ -15,12 +15,33 @@
     "type": "item"
   },
   "symbols": {
+    "rootNamespace": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "Aegis.Template.Modules",
+      "replaces": "AegisItemRootNamespace",
+      "description": "Root namespace of the generated modules project, for example Acme.WorkHub.Modules."
+    },
     "schema": {
       "type": "parameter",
       "datatype": "text",
       "defaultValue": "module_schema",
       "replaces": "aegis_module_schema",
       "description": "Database schema owned by the module."
+    },
+    "buildingBlocksProject": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "../../../Aegis.Template.BuildingBlocks/Aegis.Template.BuildingBlocks.csproj",
+      "replaces": "aegis_building_blocks_project",
+      "description": "Relative path from the module item project to the generated BuildingBlocks project."
+    },
+    "buildingBlocksNamespace": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "Aegis.Template.BuildingBlocks",
+      "replaces": "AegisBuildingBlocksNamespace",
+      "description": "Namespace of the generated BuildingBlocks project, for example Acme.WorkHub.BuildingBlocks."
     },
     "owner": {
       "type": "parameter",

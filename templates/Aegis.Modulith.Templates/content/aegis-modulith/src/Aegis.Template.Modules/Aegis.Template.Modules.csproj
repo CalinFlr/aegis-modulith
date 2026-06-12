@@ -10,6 +10,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Modules\**\bin\**;Modules\**\obj\**" />
+    <EmbeddedResource Remove="Modules\**\bin\**;Modules\**\obj\**" />
+    <None Remove="Modules\**\bin\**;Modules\**\obj\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 

@@ -14,7 +14,41 @@
     "language": "C#",
     "type": "item"
   },
+  "sources": [
+    {
+      "source": "./",
+      "target": "./",
+      "modifiers": [
+        {
+          "condition": "(scope == \"domain\")",
+          "exclude": [
+            "Contracts/**"
+          ]
+        },
+        {
+          "condition": "(scope == \"integration\")",
+          "exclude": [
+            "Domain/**"
+          ]
+        }
+      ]
+    }
+  ],
   "symbols": {
+    "rootNamespace": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "Aegis.Template.Modules",
+      "replaces": "AegisItemRootNamespace",
+      "description": "Root namespace of the generated modules project, for example Acme.WorkHub.Modules."
+    },
+    "buildingBlocksNamespace": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "Aegis.Template.BuildingBlocks",
+      "replaces": "AegisBuildingBlocksNamespace",
+      "description": "Namespace of the generated BuildingBlocks project, for example Acme.WorkHub.BuildingBlocks."
+    },
     "module": {
       "type": "parameter",
       "datatype": "text",

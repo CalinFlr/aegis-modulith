@@ -75,6 +75,14 @@
 - [x] `--license apache2|mit` generates matching `LICENSE`, README license text, and package metadata.
 - [x] `npm run template:smoke` asserts the generated semantics above.
 
+## P1B item template semantics
+
+- [x] `aegis-module` generates a module project folder, project file, `IAegisModule` composition entry point, EF Core `DbContext`, service registration extension, module folders, migrations placeholder, and `module.json`.
+- [x] `aegis-slice` generates command and query vertical slices under module `Features/<SliceName>` folders with generated CQRS abstractions, endpoint mapping helpers, validators for commands, responses, and paged list-query shape when requested.
+- [x] `aegis-event` generates distinct domain and integration events in domain and contracts locations using generated event abstractions.
+- [x] `aegis-worker` generates a `BackgroundService` worker with DI registration, logging, and cancellation-token usage.
+- [x] `npm run template:smoke` asserts item-template semantics and generated-solution compatibility for core/pro/advanced with core mediator and pro/advanced with MediatR.
+
 ## CI and guardrails
 
 - [x] `npm run check` passes.

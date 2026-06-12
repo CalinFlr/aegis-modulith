@@ -34,6 +34,14 @@
 - [x] Smoke asserts `--docs standard|full` generated docs shape.
 - [x] Smoke asserts `--license apache2|mit` generated license, README, and package metadata.
 
+## P1B item template semantics
+
+- [x] `aegis-module` output is architecture-integrated and includes an EF Core `DbContext`, `IAegisModule`, service registration, module folders, and `module.json`.
+- [x] `aegis-slice` output generates command/query CQRS vertical slices under module feature folders.
+- [x] `aegis-event` output distinguishes domain and integration events by location and abstraction.
+- [x] `aegis-worker` output uses `BackgroundService`, DI registration, logging, and cancellation tokens.
+- [x] Smoke validates item-template outputs against generated core/pro/advanced and MediatR-compatible solutions.
+
 ## Documentation
 
 - [x] README includes golden path.
