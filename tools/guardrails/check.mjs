@@ -803,13 +803,16 @@ function assertP1D4DeploymentSkeletonSemantics(errors, output, variant) {
 
   assertContains(errors, productionSettings, `"Postgres": ""`, `${variant.id} production settings should keep database connection as an empty placeholder.`);
   assertContains(errors, productionSettings, `"SigningKey": ""`, `${variant.id} production settings should keep JWT signing key empty.`);
-  assertContains(errors, productionSettings, `"AllowedHosts": ""`, `${variant.id} production settings should require user-supplied allowed hosts.`);
+  assertContains(errors, productionSettings, `"AllowedHosts": "example.invalid"`, `${variant.id} production settings should use a safe non-wildcard allowed-host placeholder.`);
+  assertNotContains(errors, productionSettings, `"AllowedHosts": ""`, `${variant.id} production settings should not fall back to wildcard host filtering.`);
+  assertNotContains(errors, productionSettings, `"AllowedHosts": "*"`, `${variant.id} production settings should not allow every host in production.`);
   assertContains(errors, productionSettings, `"EnableBackgroundProcessor": false`, `${variant.id} production settings should keep inbox processor disabled by default.`);
   assertContains(errors, productionSettings, `"OtlpEndpoint": ""`, `${variant.id} production settings should keep observability exporter empty by default.`);
 
   assertContains(errors, compose, "postgres:17-alpine", `${variant.id} compose should include only local PostgreSQL.`);
   assertContains(errors, compose, "Set POSTGRES_PASSWORD", `${variant.id} compose should require a supplied local PostgreSQL password.`);
-  assertContains(errors, compose, "Authentication__Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY}", `${variant.id} compose should require a supplied JWT signing key.`);
+  assertContains(errors, compose, "Authentication__Jwt__SigningKey: ${Authentication__Jwt__SigningKey:?Set Authentication__Jwt__SigningKey}", `${variant.id} compose should require the generated JWT signing key env var.`);
+  assertNotContains(errors, compose, "${JWT_", `${variant.id} compose should align interpolation variables with .env.example.`);
   assertNotContains(errors, compose, "MassTransit", `${variant.id} compose should not include broker infrastructure.`);
   assertNotContains(errors, compose, "RabbitMQ", `${variant.id} compose should not include RabbitMQ.`);
   assertNotContains(errors, compose, "Kafka", `${variant.id} compose should not include Kafka.`);
@@ -838,6 +841,18 @@ function assertP1D4DeploymentSkeletonSemantics(errors, output, variant) {
     assertNotContains(errors, project, "docker-compose", `${variant.id} production projects should not reference compose files.`);
     assertNotContains(errors, project, ".github", `${variant.id} production projects should not reference workflow files.`);
     assertNotContains(errors, project, ".env.example", `${variant.id} production projects should not reference env examples.`);
+  }
+
+  const modulesRoot = join(output, "src", `${variant.name}.Modules`, "Modules");
+  for (const moduleFile of listFilesAbsolute(modulesRoot).filter(file => file.endsWith("Module.cs"))) {
+    const moduleContent = readAbsolute(moduleFile);
+    if (!moduleContent.includes(`GetConnectionString("Postgres")`)) {
+      continue;
+    }
+
+    if (!moduleContent.includes("string.IsNullOrWhiteSpace(connectionString)")) {
+      errors.push(`${variant.id} ${relative(output, moduleFile)} should fail fast when ConnectionStrings:Postgres is blank.`);
+    }
   }
 
   const deploymentFiles = [dockerfile, dockerignore, compose, envExample, productionSettings, deploymentDocs, workflow];
