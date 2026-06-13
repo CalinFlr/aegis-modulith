@@ -17,55 +17,35 @@ public sealed class AegisWebApplicationFactory : WebApplicationFactory<Program>
 
     private readonly bool enableFakeAuthentication;
     private readonly string? postgresConnectionString;
-    private readonly string? previousConnectionString;
 
     private AegisWebApplicationFactory(
         string? postgresConnectionString,
-        bool enableFakeAuthentication,
-        string? previousConnectionString)
+        bool enableFakeAuthentication)
     {
         this.postgresConnectionString = postgresConnectionString;
         this.enableFakeAuthentication = enableFakeAuthentication;
-        this.previousConnectionString = previousConnectionString;
     }
 
     public static AegisWebApplicationFactory WithPostgres(string? postgresConnectionString = null)
     {
-        var previousConnectionString = SetPostgresConnectionString(postgresConnectionString);
+        SetPostgresConnectionString(postgresConnectionString);
         return new AegisWebApplicationFactory(
             postgresConnectionString,
-            enableFakeAuthentication: false,
-            previousConnectionString);
+            enableFakeAuthentication: false);
     }
 
     public static AegisWebApplicationFactory WithFakeAuthentication(string? postgresConnectionString = null)
     {
-        var previousConnectionString = SetPostgresConnectionString(postgresConnectionString);
+        SetPostgresConnectionString(postgresConnectionString);
         return new AegisWebApplicationFactory(
             postgresConnectionString,
-            enableFakeAuthentication: true,
-            previousConnectionString);
+            enableFakeAuthentication: true);
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
     {
-        var previousConnectionString = Environment.GetEnvironmentVariable(PostgresConnectionStringEnvironmentKey);
-
-        try
-        {
-            Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, GetPostgresConnectionString());
-            return base.CreateHost(builder);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, previousConnectionString);
-        }
-    }
-
-    public override async ValueTask DisposeAsync()
-    {
-        await base.DisposeAsync();
-        Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, previousConnectionString);
+        Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, GetPostgresConnectionString());
+        return base.CreateHost(builder);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -106,15 +86,12 @@ public sealed class AegisWebApplicationFactory : WebApplicationFactory<Program>
             : postgresConnectionString;
     }
 
-    private static string? SetPostgresConnectionString(string? postgresConnectionString)
+    private static void SetPostgresConnectionString(string? postgresConnectionString)
     {
-        var previousConnectionString = Environment.GetEnvironmentVariable(PostgresConnectionStringEnvironmentKey);
         Environment.SetEnvironmentVariable(
             PostgresConnectionStringEnvironmentKey,
             string.IsNullOrWhiteSpace(postgresConnectionString)
                 ? DefaultPostgresConnectionString
                 : postgresConnectionString);
-
-        return previousConnectionString;
     }
 }
