@@ -3,7 +3,6 @@ using System.Text.Json;
 using Aegis.Template.BuildingBlocks.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Metadata;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -15,7 +14,7 @@ public sealed class ApiContractTests
     [Fact]
     public async Task OpenApi_document_can_be_produced_and_declares_jwt_bearer_security_scheme()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = ContractTestContext.CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/openapi/v1.json");
@@ -41,7 +40,7 @@ public sealed class ApiContractTests
     [Fact]
     public async Task Expected_routes_methods_status_codes_and_content_types_are_declared()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = ContractTestContext.CreateFactory();
         using var client = factory.CreateClient();
         using var document = JsonDocument.Parse(await client.GetStringAsync("/openapi/v1.json"));
 
@@ -64,7 +63,7 @@ public sealed class ApiContractTests
     [Fact]
     public void Protected_endpoints_expose_named_permission_policy_metadata()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = ContractTestContext.CreateFactory();
         var endpointDataSource = factory.Services.GetRequiredService<EndpointDataSource>();
 
         AssertEndpointPolicy(endpointDataSource, "/operations/outbox", "GET", AegisAuthorizationPolicies.OperationsRead);
@@ -85,7 +84,7 @@ public sealed class ApiContractTests
     [Fact]
     public void Permission_policy_constants_are_registered_as_named_policies()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = ContractTestContext.CreateFactory();
         var authorizationOptions = factory.Services.GetRequiredService<IOptions<AuthorizationOptions>>().Value;
 
         foreach (var policyName in ExpectedPermissionPolicies())
