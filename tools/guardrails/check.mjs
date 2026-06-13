@@ -489,6 +489,7 @@ function assertArchitectureTestSemantics(errors, output, variant) {
   assertContains(errors, manifestTests, "allowCrossModuleDatabaseAccess", `${variant.id} architecture tests should assert manifest database boundary rules.`);
   assertContains(errors, manifestTests, "allowInfrastructureReferences", `${variant.id} architecture tests should assert manifest infrastructure-reference rules.`);
   assertContains(errors, manifestTests, "Public_contracts_listed_in_manifests_exist_under_contracts_folder", `${variant.id} architecture tests should assert manifest public contracts exist.`);
+  assertContains(errors, manifestTests, "SearchOption.AllDirectories", `${variant.id} architecture tests should find public contracts recursively under Contracts.`);
 
   const boundaryTests = join(architectureRoot, "ModuleBoundaryTests.cs");
   assertContains(errors, boundaryTests, "Project_references_do_not_point_to_infrastructure_projects", `${variant.id} architecture tests should inspect project references for Infrastructure boundaries.`);
@@ -499,6 +500,9 @@ function assertArchitectureTestSemantics(errors, output, variant) {
   assertContains(errors, cqrsTests, "Query_handlers_do_not_mutate_state_and_use_no_tracking_for_ef_queries", `${variant.id} architecture tests should assert query non-mutation and no-tracking EF queries.`);
   assertContains(errors, cqrsTests, "ExecuteUpdateAsync", `${variant.id} architecture tests should block EF bulk mutations from query handlers.`);
   assertContains(errors, cqrsTests, "AssertResponseTypeDoesNotExposeDomainOrInfrastructure", `${variant.id} architecture tests should prevent CQRS responses from exposing domain or infrastructure types.`);
+  assertContains(errors, cqrsTests, "PublicMemberTypes", `${variant.id} architecture tests should inspect response DTO member types.`);
+  assertContains(errors, cqrsTests, "AsNoTrackingWithIdentityResolution", `${variant.id} architecture tests should accept equivalent EF no-tracking APIs.`);
+  assertContains(errors, cqrsTests, "IsCqrsHandlerSource", `${variant.id} architecture tests should restrict handler placement checks to CQRS handlers.`);
   assertContains(errors, cqrsTests, "MediatR.IRequest", `${variant.id} architecture tests should keep MediatR compatibility covered.`);
 
   const profileTests = join(architectureRoot, "ProfileOptionWiringTests.cs");
@@ -521,8 +525,8 @@ function assertArchitectureTestSemantics(errors, output, variant) {
 
   const persistenceTests = join(architectureRoot, "PersistenceArchitectureTests.cs");
   assertContains(errors, persistenceTests, "Each_module_has_one_module_scoped_dbcontext", `${variant.id} architecture tests should assert module-scoped DbContexts.`);
-  assertContains(errors, persistenceTests, "Generated_dbcontexts_do_not_configure_foreign_keys_by_default", `${variant.id} architecture tests should assert no generated FK configuration by default.`);
-  assertContains(errors, persistenceTests, "System.ComponentModel.DataAnnotations.Schema", `${variant.id} architecture tests should scan entity sources for FK relationship attributes.`);
+  assertContains(errors, persistenceTests, "Generated_sources_do_not_configure_cross_module_foreign_keys", `${variant.id} architecture tests should assert no cross-module FK configuration by default.`);
+  assertContains(errors, persistenceTests, "relationshipMarkers", `${variant.id} architecture tests should distinguish relationship mapping from cross-module references.`);
 }
 
 function assertItemModuleSemantics(errors, moduleRoot, variant) {

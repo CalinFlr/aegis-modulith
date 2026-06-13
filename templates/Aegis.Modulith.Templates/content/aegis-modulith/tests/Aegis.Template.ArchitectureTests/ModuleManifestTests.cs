@@ -47,15 +47,20 @@ public sealed class ModuleManifestTests
 
             foreach (var contractName in GetStringArray(manifest.RootElement, "publicContracts", moduleFolder))
             {
-                var contractPath = Path.Combine(contractsFolder, $"{contractName}.cs");
-                if (!File.Exists(contractPath))
+                if (!ContractSourceExists(contractsFolder, contractName))
                 {
-                    failures.Add($"{moduleName} lists public contract {contractName}, but {ArchitectureTestContext.Relative(contractPath)} does not exist.");
+                    failures.Add($"{moduleName} lists public contract {contractName}, but no matching source exists under {ArchitectureTestContext.Relative(contractsFolder)}.");
                 }
             }
         }
 
         Assert.Empty(failures);
+    }
+
+    private static bool ContractSourceExists(string contractsFolder, string contractName)
+    {
+        return Directory.Exists(contractsFolder) &&
+            Directory.GetFiles(contractsFolder, $"{contractName}.cs", SearchOption.AllDirectories).Length > 0;
     }
 
     internal static JsonDocument ReadManifest(string moduleFolder)

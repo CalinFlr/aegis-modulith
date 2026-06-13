@@ -1,3 +1,4 @@
+using System.Reflection;
 using Aegis.Template.BuildingBlocks.Cqrs;
 
 namespace Aegis.Template.ArchitectureTests;
@@ -91,7 +92,7 @@ public sealed class CqrsArchitectureTests
             if (content.Contains("DbContext", StringComparison.Ordinal) ||
                 content.Contains("Microsoft.EntityFrameworkCore", StringComparison.Ordinal))
             {
-                Assert.Contains(".AsNoTracking()", content, StringComparison.Ordinal);
+                Assert.True(UsesNoTrackingQuery(content), $"{ArchitectureTestContext.Relative(file)} must use a no-tracking EF query API.");
             }
         }
     }
@@ -136,17 +137,38 @@ public sealed class CqrsArchitectureTests
 
     private static IEnumerable<Type> FlattenResponseTypes(Type type)
     {
+        return FlattenResponseTypes(type, []);
+    }
+
+    private static IEnumerable<Type> FlattenResponseTypes(Type type, HashSet<Type> visited)
+    {
         var effectiveType = Nullable.GetUnderlyingType(type) ?? type;
+        if (!visited.Add(effectiveType))
+        {
+            yield break;
+        }
+
         yield return effectiveType;
 
-        if (effectiveType == typeof(string))
+        if (effectiveType == typeof(string) ||
+            effectiveType.IsPrimitive ||
+            effectiveType.IsEnum ||
+            effectiveType.Namespace?.StartsWith("System", StringComparison.Ordinal) == true)
         {
             yield break;
         }
 
         foreach (var argument in effectiveType.GetGenericArguments())
         {
-            foreach (var nested in FlattenResponseTypes(argument))
+            foreach (var nested in FlattenResponseTypes(argument, visited))
+            {
+                yield return nested;
+            }
+        }
+
+        foreach (var memberType in PublicMemberTypes(effectiveType))
+        {
+            foreach (var nested in FlattenResponseTypes(memberType, visited))
             {
                 yield return nested;
             }
@@ -159,6 +181,26 @@ public sealed class CqrsArchitectureTests
             .Where(type => type.Namespace?.Contains(".Features.", StringComparison.Ordinal) == true)
             .Where(type => type.Name.EndsWith(suffix, StringComparison.Ordinal))
             .ToArray();
+    }
+
+    private static IEnumerable<Type> PublicMemberTypes(Type type)
+    {
+        foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            yield return property.PropertyType;
+        }
+
+        foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
+        {
+            yield return field.FieldType;
+        }
+
+        foreach (var parameter in type
+            .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
+            .SelectMany(constructor => constructor.GetParameters()))
+        {
+            yield return parameter.ParameterType;
+        }
     }
 
     private static IReadOnlyList<HandlerBinding> HandlerBindings(Type handlerOpenGenericType)
@@ -197,13 +239,28 @@ public sealed class CqrsArchitectureTests
             .Any(fullName => fullName == openGenericFullName);
     }
 
+    private static bool UsesNoTrackingQuery(string content)
+    {
+        return content.Contains(".AsNoTracking()", StringComparison.Ordinal) ||
+               content.Contains(".AsNoTrackingWithIdentityResolution()", StringComparison.Ordinal) ||
+               content.Contains("QueryTrackingBehavior.NoTracking", StringComparison.Ordinal) ||
+               content.Contains("UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)", StringComparison.Ordinal);
+    }
+
     private static bool IsSliceSourceFile(string file)
     {
         var name = Path.GetFileNameWithoutExtension(file);
         return name.EndsWith("Command", StringComparison.Ordinal) ||
                name.EndsWith("Query", StringComparison.Ordinal) ||
-               name.EndsWith("Handler", StringComparison.Ordinal) ||
+               (name.EndsWith("Handler", StringComparison.Ordinal) && IsCqrsHandlerSource(file)) ||
                name.EndsWith("Response", StringComparison.Ordinal);
+    }
+
+    private static bool IsCqrsHandlerSource(string file)
+    {
+        var content = File.ReadAllText(file);
+        return content.Contains("ICommandHandler<", StringComparison.Ordinal) ||
+               content.Contains("IQueryHandler<", StringComparison.Ordinal);
     }
 
     private sealed record HandlerBinding(Type HandlerType, Type RequestType, Type ResponseType);

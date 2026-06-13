@@ -42,9 +42,9 @@ public sealed class PersistenceArchitectureTests
     }
 
     [Fact]
-    public void Generated_dbcontexts_do_not_configure_foreign_keys_by_default()
+    public void Generated_sources_do_not_configure_cross_module_foreign_keys()
     {
-        var forbiddenMarkers = new[]
+        var relationshipMarkers = new[]
         {
             ".HasForeignKey(",
             "HasForeignKey<",
@@ -56,15 +56,37 @@ public sealed class PersistenceArchitectureTests
             "[InverseProperty",
             "System.ComponentModel.DataAnnotations.Schema"
         };
+        var failures = new List<string>();
 
-        foreach (var sourceFile in ArchitectureTestContext.SourceFilesUnder(ArchitectureTestContext.ModulesRoot))
+        foreach (var moduleFolder in ArchitectureTestContext.ModuleFolders)
         {
-            var content = File.ReadAllText(sourceFile);
-            foreach (var marker in forbiddenMarkers)
+            var moduleName = Path.GetFileName(moduleFolder);
+            foreach (var sourceFile in ArchitectureTestContext.SourceFilesUnder(moduleFolder))
             {
-                Assert.DoesNotContain(marker, content, StringComparison.Ordinal);
+                var content = File.ReadAllText(sourceFile);
+                if (!relationshipMarkers.Any(marker => content.Contains(marker, StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
+                foreach (var otherModuleName in ArchitectureTestContext.ModuleNames.Where(name => name != moduleName))
+                {
+                    foreach (var forbiddenNamespace in new[]
+                             {
+                                 $".Modules.{otherModuleName}.Domain",
+                                 $".Modules.{otherModuleName}.Infrastructure"
+                             })
+                    {
+                        if (content.Contains(forbiddenNamespace, StringComparison.Ordinal))
+                        {
+                            failures.Add($"{ArchitectureTestContext.Relative(sourceFile)} configures an EF relationship to {forbiddenNamespace}.");
+                        }
+                    }
+                }
             }
         }
+
+        Assert.Empty(failures);
     }
 
     [Fact]
