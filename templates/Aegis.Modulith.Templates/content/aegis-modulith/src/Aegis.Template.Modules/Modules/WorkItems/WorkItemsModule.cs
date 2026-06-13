@@ -23,8 +23,11 @@ public sealed class WorkItemsModule : IAegisModule
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("Postgres")
+            ?? throw new InvalidOperationException("ConnectionStrings:Postgres must be configured for the WorkItems module.");
+
         services.AddDbContext<WorkItemsDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("Postgres") ?? DefaultConnectionString));
+            options.UseNpgsql(connectionString));
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -55,6 +58,4 @@ public sealed class WorkItemsModule : IAegisModule
 #endif
             ;
     }
-
-    private const string DefaultConnectionString = "Host=localhost;Port=5432;Database=aegis_template;Username=postgres;Password=postgres";
 }

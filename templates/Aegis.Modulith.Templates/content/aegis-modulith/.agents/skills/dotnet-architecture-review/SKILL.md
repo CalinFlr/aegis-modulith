@@ -3,21 +3,31 @@ name: dotnet-architecture-review
 description: Use when reviewing module boundaries and architectural consistency.
 ---
 
-# .NET Architecture Review
+# dotnet-architecture-review
 
 ## Goal
 
-Review generated modular monolith code for boundary, CQRS, and persistence consistency.
+Use when reviewing module boundaries and architectural consistency.
+
+## Required context
+
+Read `AGENTS.md` first. Then read the relevant file under `.ai/workflows` and `.ai/policies`.
 
 ## Procedure
 
-- Check module boundaries.
-- Check commands and queries remain separate.
-- Check API responses do not expose EF entities.
-- Check no generic EF repository abstraction is introduced.
+- Check Domain dependencies.
+- Check module references.
+- Check DbContext/schema ownership.
+- Check no generic repository over EF Core.
 
 ## Validation
 
+Run the smallest relevant checks, and before completion run:
+
 ```bash
-dotnet test -c Release
+npm run check
 ```
+
+## Final response
+
+Report files changed, validation commands, risks, and remaining limitations.

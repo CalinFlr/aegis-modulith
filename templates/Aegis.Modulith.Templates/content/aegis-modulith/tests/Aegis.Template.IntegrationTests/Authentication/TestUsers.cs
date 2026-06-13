@@ -21,7 +21,7 @@ public static class TestUsers
     public static TestUser OperationsReader { get; } = new(
         "operations-reader",
         "Operations Reader",
-        ["operations-reader"],
+        [],
         [AegisPermissions.OperationsRead],
         [AegisPermissions.OperationsRead]);
 

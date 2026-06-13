@@ -7,7 +7,7 @@ public sealed class ContainerizedPostgresSmokeTests(PostgresContainerFixture pos
     [DockerFact]
     public async Task Api_host_starts_against_containerized_postgres()
     {
-        await using var factory = new AegisWebApplicationFactory(postgres.ConnectionString);
+        await using var factory = AegisWebApplicationFactory.WithPostgres(postgres.ConnectionString);
 
         await DatabaseInitialization.InitializeAsync(factory.Services);
 

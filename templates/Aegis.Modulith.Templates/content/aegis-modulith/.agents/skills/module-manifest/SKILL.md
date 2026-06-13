@@ -1,22 +1,34 @@
 ---
 name: module-manifest
-description: Use when creating or reviewing module.json manifests for generated modules.
+description: Use when creating or reviewing module.json manifests for generated Aegis.Modulith modules.
 ---
 
-# Module Manifest
+# Module Manifest Skill
 
 ## Goal
 
-Keep module metadata accurate for humans, tools, and AI agents.
+Make module ownership, dependencies, public contracts, features, and boundary rules explicit.
 
-## Procedure
+## Required context
 
-- Update name, schema, owner, dependencies, public contracts, features, and rules.
-- Keep cross-module database access disabled by default.
-- Keep Infrastructure references disabled by default.
+Read:
+
+- `docs/module-manifest.md`
+- `docs/architecture.md`
+- `AGENTS.md`
+- the module's `module.json`, if it exists
+
+## Rules
+
+- Every generated business module should include `module.json`.
+- The manifest must list name, schema, type, owner, dependencies, publicContracts, features, and rules.
+- Dependencies must be explicit.
+- The manifest does not replace architecture tests.
+- Do not use the manifest to justify boundary violations.
 
 ## Validation
 
 ```bash
-dotnet test -c Release
+npm run check:specs
+npm run check:ai
 ```

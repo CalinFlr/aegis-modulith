@@ -7,11 +7,7 @@ public sealed class DomainIsolationTests
     [Fact]
     public void Domain_source_files_do_not_depend_on_web_or_persistence_infrastructure()
     {
-        var domainFiles = ArchitectureTestContext.ModuleFolders
-            .Select(moduleFolder => Path.Combine(moduleFolder, "Domain"))
-            .Where(Directory.Exists)
-            .SelectMany(ArchitectureTestContext.SourceFilesUnder)
-            .ToArray();
+        var domainFiles = DomainModelSourceFiles().ToArray();
 
         Assert.NotEmpty(domainFiles);
 
@@ -44,13 +40,7 @@ public sealed class DomainIsolationTests
         foreach (var moduleFolder in ArchitectureTestContext.ModuleFolders)
         {
             var moduleName = Path.GetFileName(moduleFolder);
-            var domainFolder = Path.Combine(moduleFolder, "Domain");
-            if (!Directory.Exists(domainFolder))
-            {
-                continue;
-            }
-
-            var domainSource = string.Join(Environment.NewLine, ArchitectureTestContext.SourceFilesUnder(domainFolder).Select(File.ReadAllText));
+            var domainSource = string.Join(Environment.NewLine, DomainModelSourceFiles(moduleFolder).Select(File.ReadAllText));
             foreach (var otherModuleName in ArchitectureTestContext.ModuleNames.Where(name => name != moduleName))
             {
                 var forbiddenNamespace = $".Modules.{otherModuleName}.Domain";
@@ -62,6 +52,23 @@ public sealed class DomainIsolationTests
         }
 
         Assert.Empty(failures);
+    }
+
+    private static IEnumerable<string> DomainModelSourceFiles()
+    {
+        return ArchitectureTestContext.ModuleFolders.SelectMany(DomainModelSourceFiles);
+    }
+
+    private static IEnumerable<string> DomainModelSourceFiles(string moduleFolder)
+    {
+        var domainFolder = Path.Combine(moduleFolder, "Domain");
+        var domainFiles = Directory.Exists(domainFolder)
+            ? ArchitectureTestContext.SourceFilesUnder(domainFolder)
+            : [];
+
+        var domainEventFiles = Directory.GetFiles(moduleFolder, "*DomainEvent.cs", SearchOption.AllDirectories);
+
+        return domainFiles.Concat(domainEventFiles).Distinct(StringComparer.Ordinal);
     }
 
     [Fact]

@@ -1,11 +1,16 @@
 using System.Reflection;
 using System.Xml.Linq;
 using Aegis.Template.Modules;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Aegis.Template.ContractTests;
 
 internal static class ContractTestContext
 {
+    private const string PostgresConnectionStringEnvironmentKey = "ConnectionStrings__Postgres";
+    private const string DefaultPostgresConnectionString =
+        "Host=localhost;Port=5432;Database=aegis_template_contracts;Username=postgres;Password=postgres";
+
     private static readonly Lazy<string> SolutionRootValue = new(FindSolutionRoot);
     private static readonly Lazy<XDocument> DirectoryBuildPropsValue = new(() => XDocument.Load(Path.Combine(SolutionRoot, "Directory.Build.props")));
 
@@ -33,6 +38,13 @@ internal static class ContractTestContext
     public static IEnumerable<Type> ModuleTypes()
     {
         return typeof(ModulesAssemblyMarker).Assembly.GetTypes();
+    }
+
+    public static WebApplicationFactory<Program> CreateFactory()
+    {
+        var previousConnectionString = Environment.GetEnvironmentVariable(PostgresConnectionStringEnvironmentKey);
+        Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, DefaultPostgresConnectionString);
+        return new ContractWebApplicationFactory(previousConnectionString);
     }
 
     public static string GetOption(string name)
@@ -76,5 +88,39 @@ internal static class ContractTestContext
         }
 
         throw new DirectoryNotFoundException("Could not find generated solution root.");
+    }
+
+    private sealed class ContractWebApplicationFactory(string? previousConnectionString) : WebApplicationFactory<Program>
+    {
+        private bool isDisposed;
+
+        public override async ValueTask DisposeAsync()
+        {
+            await base.DisposeAsync();
+            RestorePostgresConnectionString();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            try
+            {
+                base.Dispose(disposing);
+            }
+            finally
+            {
+                RestorePostgresConnectionString();
+            }
+        }
+
+        private void RestorePostgresConnectionString()
+        {
+            if (isDisposed)
+            {
+                return;
+            }
+
+            isDisposed = true;
+            Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, previousConnectionString);
+        }
     }
 }
