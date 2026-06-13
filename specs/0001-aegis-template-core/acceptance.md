@@ -70,6 +70,16 @@
 - [x] Core excludes pro/advanced JWT/auth/policy/fake-auth assets except documented minimal shared permission constants.
 - [x] Default template smoke asserts P1D-2A semantics without requiring an external identity provider.
 
+## P1D-2B inbox pattern scaffold
+
+- [x] Pro and advanced generated outputs include an inbox persistence model with stable message identity, payload placeholder, status, timestamps, failure reason, retry count, and simple lease fields.
+- [x] Pro and advanced generated outputs include EF Core configuration, DbContext integration, PostgreSQL-friendly naming, and unique indexes on `MessageId` and `IdempotencyKey`.
+- [x] Pro and advanced generated outputs include a small inbox store abstraction with accept, duplicate detection, processing, processed, and failed transitions.
+- [x] Pro and advanced generated outputs include an inbox processor scaffold, handler dispatch abstraction, and sample integration-event handler.
+- [x] Generated tests prove duplicate/idempotency behavior, processed messages are not processed twice, failure state is recorded, and duplicate inputs invoke the handler once.
+- [x] Core generated output excludes active inbox infrastructure by default.
+- [x] Default template smoke asserts P1D-2B semantics without requiring Docker or a broker.
+
 ## Documentation
 
 - [x] README includes golden path.

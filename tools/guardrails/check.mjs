@@ -368,6 +368,125 @@ function assertP1D2AAuthPermissionSemantics(errors, output, variant) {
   assertContains(errors, permissionAuthorizationTests, "Request_without_required_permission_is_forbidden", `${variant.id} should prove missing permissions are rejected.`);
 }
 
+function assertP1D2BInboxSemantics(errors, output, variant) {
+  const packages = join(output, "Directory.Packages.props");
+  const apiProject = join(output, "src", `${variant.name}.Api`, `${variant.name}.Api.csproj`);
+  const inboxRoot = join(output, "src", `${variant.name}.Api`, "Pro", "Infrastructure", "Inbox");
+  const inboxMessage = join(inboxRoot, "InboxMessage.cs");
+  const inboxStatus = join(inboxRoot, "InboxMessageStatus.cs");
+  const inboxConfiguration = join(inboxRoot, "InboxMessageConfiguration.cs");
+  const inboxDbContext = join(inboxRoot, "AegisInboxDbContext.cs");
+  const inboxStore = join(inboxRoot, "IInboxStore.cs");
+  const efStore = join(inboxRoot, "EfCoreInboxStore.cs");
+  const processor = join(inboxRoot, "InboxProcessor.cs");
+  const processorWorker = join(inboxRoot, "InboxProcessorWorker.cs");
+  const handler = join(inboxRoot, "SampleIntegrationEventInboxHandler.cs");
+  const serviceRegistration = join(inboxRoot, "InboxServiceCollectionExtensions.cs");
+  const proServices = join(output, "src", `${variant.name}.Api`, "Pro", "ProProfileServices.cs");
+  const integrationRoot = join(output, "tests", `${variant.name}.IntegrationTests`);
+  const integrationProject = join(integrationRoot, `${variant.name}.IntegrationTests.csproj`);
+  const inboxTests = join(integrationRoot, "Inbox", "InboxStoreTests.cs");
+  const messagingDocs = join(output, "docs", "messaging.md");
+
+  if (variant.profile === "core") {
+    assertMissing(errors, inboxRoot, `${variant.id} core profile should not include active inbox infrastructure.`);
+    assertNotContains(errors, packages, "Microsoft.EntityFrameworkCore.InMemory", `${variant.id} core profile should not include inbox test package versions.`);
+    assertNotContains(errors, apiProject, "Npgsql.EntityFrameworkCore.PostgreSQL", `${variant.id} core API project should not reference inbox persistence package directly.`);
+    assertExists(errors, messagingDocs, `${variant.id} generated docs should include profile-accurate messaging guidance.`);
+    assertContains(errors, messagingDocs, "## Core Profile", `${variant.id} core messaging docs should describe that inbox is excluded.`);
+    assertContains(errors, messagingDocs, "Core does not generate active inbox infrastructure", `${variant.id} core messaging docs should state that active inbox infrastructure is excluded.`);
+    assertNotContains(errors, messagingDocs, `tests/${variant.name}.IntegrationTests`, `${variant.id} core messaging docs should not reference a missing integration test project.`);
+    return;
+  }
+
+  for (const [path, description] of [
+    [inboxMessage, "inbox entity"],
+    [inboxStatus, "inbox status enum"],
+    [inboxConfiguration, "inbox EF configuration"],
+    [inboxDbContext, "inbox DbContext"],
+    [inboxStore, "inbox service abstraction"],
+    [efStore, "EF Core inbox store"],
+    [processor, "inbox processor"],
+    [processorWorker, "optional inbox processor worker"],
+    [handler, "sample integration-event inbox handler"],
+    [serviceRegistration, "inbox service registration"],
+    [inboxTests, "generated inbox behavior tests"]
+  ]) {
+    assertExists(errors, path, `${variant.id} missing ${description}.`);
+  }
+
+  assertContains(errors, apiProject, "Npgsql.EntityFrameworkCore.PostgreSQL", `${variant.id} API project should reference PostgreSQL EF support for inbox persistence.`);
+  assertContains(errors, packages, "Microsoft.EntityFrameworkCore.InMemory", `${variant.id} should include EF InMemory package version for fast generated inbox tests.`);
+  assertContains(errors, integrationProject, "Microsoft.EntityFrameworkCore.InMemory", `${variant.id} inbox tests should use EF InMemory instead of Docker.`);
+
+  for (const marker of [
+    "MessageId",
+    "IdempotencyKey",
+    "MessageType",
+    "Payload",
+    "ReceivedAtUtc",
+    "ProcessedAtUtc",
+    "FailureReason",
+    "AttemptCount",
+    "LockToken",
+    "LockedUntilUtc"
+  ]) {
+    assertContains(errors, inboxMessage, marker, `${variant.id} inbox entity should include ${marker}.`);
+  }
+  for (const status of ["Pending", "Processing", "Processed", "Failed"]) {
+    assertContains(errors, inboxStatus, status, `${variant.id} inbox status should include ${status}.`);
+  }
+  assertContains(errors, inboxConfiguration, "ToTable(\"inbox_messages\", AegisInboxDbContext.Schema)", `${variant.id} inbox table should use PostgreSQL-friendly naming and schema.`);
+  assertContains(errors, inboxConfiguration, "HasIndex(message => message.MessageId).IsUnique()", `${variant.id} inbox should enforce unique MessageId.`);
+  assertContains(errors, inboxConfiguration, "HasIndex(message => message.IdempotencyKey).IsUnique()", `${variant.id} inbox should enforce unique IdempotencyKey.`);
+  assertContains(errors, inboxDbContext, "Schema = \"integration\"", `${variant.id} inbox DbContext should use the documented integration schema.`);
+  assertContains(errors, inboxDbContext, "DbSet<InboxMessage>", `${variant.id} inbox DbContext should expose InboxMessages.`);
+
+  for (const method of [
+    "AcceptAsync",
+    "IsDuplicateAsync",
+    "TryBeginProcessingAsync",
+    "MarkProcessedAsync",
+    "MarkFailedAsync",
+    "GetPendingAsync"
+  ]) {
+    assertContains(errors, inboxStore, method, `${variant.id} inbox abstraction should include ${method}.`);
+  }
+  assertContains(errors, efStore, "DbUpdateException", `${variant.id} inbox store should tolerate unique-constraint duplicate races.`);
+  assertContains(errors, efStore, "InboxAcceptResult.Accepted", `${variant.id} inbox store should return accepted results.`);
+  assertContains(errors, efStore, "InboxAcceptResult.Duplicate", `${variant.id} inbox store should return duplicate results.`);
+  assertContains(errors, efStore, "InboxAcceptResult.AlreadyProcessed", `${variant.id} inbox store should return already-processed results.`);
+
+  assertContains(errors, processor, "IEnumerable<IInboxMessageHandler>", `${variant.id} inbox processor should dispatch through handler abstraction.`);
+  assertContains(errors, processor, "MarkProcessedAsync", `${variant.id} inbox processor should mark processed messages.`);
+  assertContains(errors, processor, "MarkFailedAsync", `${variant.id} inbox processor should mark failed messages.`);
+  assertContains(errors, serviceRegistration, "Inbox:EnableBackgroundProcessor", `${variant.id} inbox background processor should be opt-in by configuration.`);
+  assertContains(errors, serviceRegistration, "AddHostedService<InboxProcessorWorker>", `${variant.id} inbox worker registration should be available when opted in.`);
+  assertContains(errors, proServices, "AddAegisInbox(configuration)", `${variant.id} pro services should wire the inbox foundation.`);
+  assertContains(errors, handler, ".Contracts", `${variant.id} sample inbox handler should use integration-event contracts.`);
+  assertContains(errors, handler, "IntegrationEvent", `${variant.id} sample inbox handler should use an integration event type.`);
+  assertNotContains(errors, handler, ".Domain", `${variant.id} sample inbox handler should not depend on domain entities.`);
+
+  for (const testName of [
+    "First_message_is_accepted",
+    "Duplicate_message_id_is_detected",
+    "Processed_message_is_not_accepted_again",
+    "Failed_message_records_failure_and_retry_state",
+    "Processor_invokes_handler_once_for_duplicate_inputs"
+  ]) {
+    assertContains(errors, inboxTests, testName, `${variant.id} inbox tests should cover ${testName}.`);
+  }
+
+  assertExists(errors, messagingDocs, `${variant.id} generated docs should include messaging guidance.`);
+  assertContains(errors, messagingDocs, "## Pro And Advanced Profiles", `${variant.id} messaging docs should describe pro/advanced inbox behavior.`);
+  assertContains(errors, messagingDocs, "MessageId", `${variant.id} messaging docs should explain MessageId idempotency.`);
+  assertContains(errors, messagingDocs, "IdempotencyKey", `${variant.id} messaging docs should explain IdempotencyKey idempotency.`);
+  assertContains(errors, messagingDocs, "Inbox:EnableBackgroundProcessor", `${variant.id} messaging docs should document opt-in processor execution.`);
+  assertContains(errors, messagingDocs, "No broker is included by default", `${variant.id} messaging docs should state no broker is included.`);
+  assertContains(errors, messagingDocs, "not event sourcing", `${variant.id} messaging docs should state inbox is not event sourcing.`);
+  assertContains(errors, messagingDocs, `tests/${variant.name}.IntegrationTests`, `${variant.id} messaging docs should point to generated inbox tests.`);
+}
+
 function assertAiSemantics(errors, output, variant) {
   const aiFiles = [
     "AGENTS.md",
@@ -519,7 +638,7 @@ function assertSkillSemantics(errors, output, variant) {
 }
 
 function assertDocsSemantics(errors, output, variant) {
-  for (const file of ["docs/getting-started.md", "docs/architecture.md", "docs/development.md", "docs/testing.md", "docs/module-manifest.md"]) {
+  for (const file of ["docs/getting-started.md", "docs/architecture.md", "docs/development.md", "docs/testing.md", "docs/module-manifest.md", "docs/messaging.md"]) {
     assertExists(errors, join(output, file), `${variant.id} should include standard doc ${file}.`);
   }
 
@@ -644,6 +763,7 @@ function assertArchitectureTestSemantics(errors, output, variant) {
     "DomainIsolationTests.cs",
     "CqrsArchitectureTests.cs",
     "ApiEndpointTests.cs",
+    "InboxArchitectureTests.cs",
     "PersistenceArchitectureTests.cs",
     "ProfileOptionWiringTests.cs"
   ];
@@ -730,6 +850,12 @@ function assertArchitectureTestSemantics(errors, output, variant) {
   assertContains(errors, persistenceTests, "Each_module_has_one_module_scoped_dbcontext", `${variant.id} architecture tests should assert module-scoped DbContexts.`);
   assertContains(errors, persistenceTests, "Generated_sources_do_not_configure_cross_module_foreign_keys", `${variant.id} architecture tests should assert no cross-module FK configuration by default.`);
   assertContains(errors, persistenceTests, "relationshipMarkers", `${variant.id} architecture tests should distinguish relationship mapping from cross-module references.`);
+
+  const inboxTests = join(architectureRoot, "InboxArchitectureTests.cs");
+  assertContains(errors, inboxTests, "Inbox_profile_wiring_matches_selected_profile", `${variant.id} architecture tests should assert inbox profile wiring.`);
+  assertContains(errors, inboxTests, "Domain_code_does_not_reference_inbox_infrastructure", `${variant.id} architecture tests should keep inbox infrastructure out of Domain code.`);
+  assertContains(errors, inboxTests, "Inbox_processing_uses_integration_event_contracts", `${variant.id} architecture tests should assert inbox processing uses integration contracts.`);
+  assertContains(errors, inboxTests, "Generated_inbox_does_not_reference_a_broker_by_default", `${variant.id} architecture tests should assert no broker dependency by default.`);
 }
 
 function assertItemModuleSemantics(errors, moduleRoot, variant) {
@@ -1010,6 +1136,7 @@ async function checkDocs() {
     "docs/cli-template-spec.md",
     "docs/implementation-plan.md",
     "docs/testing.md",
+    "docs/messaging.md",
     "docs/acceptance-criteria.md",
     "docs/git-plan.md",
     "docs/open-questions-protocol.md",
@@ -1202,6 +1329,7 @@ async function checkTemplateSmoke() {
     assertProfileSemantics(errors, output, variant);
     assertP1DFeatureDepthSemantics(errors, output, variant);
     assertP1D2AAuthPermissionSemantics(errors, output, variant);
+    assertP1D2BInboxSemantics(errors, output, variant);
     assertAiSemantics(errors, output, variant);
     assertGuardrailSemantics(errors, output, variant);
     assertHookSemantics(errors, output, variant);

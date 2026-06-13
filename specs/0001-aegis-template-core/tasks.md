@@ -43,6 +43,7 @@
 - [x] Implement generated `--skills none|core|enterprise` skill-set materialization.
 - [x] Implement generated `--docs standard|full` docs materialization.
 - [x] Implement generated `--license apache2|mit` license materialization.
+- [x] Implement P1D-2B inbox/idempotency scaffold for generated pro and advanced profiles.
 
 ## Validation and polish
 

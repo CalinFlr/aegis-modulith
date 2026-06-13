@@ -1,5 +1,6 @@
 using Aegis.Template.Api.Pro.Auth;
 using Aegis.Template.Api.Pro.Http;
+using Aegis.Template.Api.Pro.Infrastructure.Inbox;
 using Microsoft.AspNetCore.Routing;
 
 namespace Aegis.Template.Api.Pro;
@@ -10,6 +11,7 @@ public static class ProProfileServices
     {
         services.AddAegisJwtAuthentication(configuration);
         services.AddAegisPermissionPolicies();
+        services.AddAegisInbox(configuration);
         services.AddSingleton<Outbox.OutboxDispatcher>();
         services.AddHostedService<Workers.OutboxDispatcherWorker>();
         services.AddSingleton<Idempotency.InMemoryIdempotencyStore>();

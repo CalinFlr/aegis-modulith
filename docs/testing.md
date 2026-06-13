@@ -19,6 +19,7 @@ dotnet test -c Release
 
 `template:smoke` builds and tests generated core, pro, advanced, and mediator variants. It also asserts P1D-1 semantics for generated pro and advanced outputs without starting Docker.
 It now also asserts P1D-2A JWT/auth and permission-policy semantics without issuing real JWTs or calling an external identity provider.
+It also asserts P1D-2B inbox semantics without requiring a broker or Docker.
 
 ## Pro And Advanced Integration Tests
 
@@ -53,6 +54,12 @@ The fake scheme is `Aegis.Test`. Test clients use these headers:
 The handler maps user id and name to standard name claims, roles to `ClaimTypes.Role`, scopes to the `scope` claim, and permissions to the `permission` claim. Production `Program.cs` does not enable the fake scheme.
 
 Generated permission-policy tests use fake auth to prove that a request with the required permission can access a protected endpoint and that a request without the required permission is rejected. These tests do not require real JWT issuance.
+
+## Inbox Tests
+
+Generated pro and advanced integration tests include fast inbox behavior tests under `tests/<App>.IntegrationTests/Inbox`.
+
+They use EF InMemory and prove first acceptance, duplicate detection, processed-message idempotency, failure state, and single handler invocation for duplicate inputs. They do not require Docker or a message broker.
 
 ## HttpClient Resilience
 

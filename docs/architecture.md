@@ -10,6 +10,7 @@ Focused rule docs:
 - [Vertical slices](architecture/vertical-slices.md)
 - [Module manifests](architecture/module-manifest.md)
 - [Authentication and permissions](authentication.md)
+- [Messaging and inbox](messaging.md)
 
 ## Modular monolith
 
@@ -64,6 +65,8 @@ modules/
 Event sourcing is not used by default. The template supports domain events, integration events, and outbox-ready flows, but the database stores current state as the primary source of truth.
 
 Event sourcing may be introduced later for selected modules such as ledger, inventory movement history, or audit-critical workflows, but only with an ADR.
+
+The inbox pattern is a state-based idempotency scaffold for inbound integration messages in generated `pro` and `advanced` profiles. It is not event sourcing and does not add a broker dependency.
 
 ## Mediator decision
 

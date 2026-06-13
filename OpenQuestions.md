@@ -186,6 +186,51 @@ Use this template:
 - Created: 2026-06-09
 - Resolved: N/A
 
+### Q-20260609-005: Use database uniqueness for inbox idempotency
+
+- Status: inferred
+- Risk: medium
+- Owner: human
+- Source: P1D-2B implementation
+- Affected areas: templates, generated pro/advanced APIs, generated tests, docs, smoke assertions
+- Question: Should the generated inbox pattern rely on database uniqueness for idempotency instead of claiming broker-level exactly-once delivery?
+- Context: P1D-2B requires an inbox/idempotency foundation without introducing a message broker dependency or a larger distributed-lock framework.
+- Proposed default: Use unique indexes on `MessageId` and `IdempotencyKey`, return accepted/duplicate/already-processed results from the inbox store, and document broker-level exactly-once as out of scope.
+- Impact if different: A broker-specific or distributed-lock approach would require new dependencies, provider-specific docs, broader integration tests, and a separate architecture decision.
+- Current action: implement default
+- Created: 2026-06-09
+- Resolved: N/A
+
+### Q-20260609-006: Omit broker integration from inbox scaffold
+
+- Status: inferred
+- Risk: medium
+- Owner: human
+- Source: P1D-2B implementation
+- Affected areas: templates, generated pro/advanced APIs, docs, smoke assertions
+- Question: Should generated inbox scaffolding include a concrete broker consumer?
+- Context: The goal requires a practical inbox foundation but explicitly forbids introducing a message broker dependency.
+- Proposed default: Generate `IInboxStore`, `InboxProcessor`, handler dispatch, and a sample handler, and document where a broker, webhook, queue consumer, or import endpoint would call `AcceptAsync`.
+- Impact if different: Adding a concrete broker would add dependency, configuration, runtime, security, and test surface beyond P1D-2B.
+- Current action: implement default
+- Created: 2026-06-09
+- Resolved: N/A
+
+### Q-20260609-007: Generate active inbox only for pro and advanced
+
+- Status: inferred
+- Risk: medium
+- Owner: human
+- Source: P1D-2B implementation
+- Affected areas: profile behavior, generated docs, generated tests, smoke assertions
+- Question: Should the core profile include any active inbox infrastructure?
+- Context: The goal says `core` should remain lightweight and should not include inbox infrastructure by default.
+- Proposed default: Exclude active inbox code and generated inbox tests from `core`; include profile-accurate messaging docs that point users to `pro` or `advanced` for inbox support.
+- Impact if different: Core would become heavier and would need additional persistence and test package assertions.
+- Current action: implement default
+- Created: 2026-06-09
+- Resolved: N/A
+
 ## Blockers
 
 No known blockers at pack creation time.

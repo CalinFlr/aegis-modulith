@@ -53,6 +53,7 @@ Includes everything in `core`, plus:
 
 - Aspire AppHost and ServiceDefaults.
 - Outbox skeleton.
+- Inbox/idempotency scaffold.
 - Audit skeleton.
 - Idempotency support.
 - Testcontainers integration test setup.
@@ -76,8 +77,7 @@ Includes everything in `pro`, plus optional advanced scaffolding for:
 
 - Tenancy.
 - Permission/auth skeleton.
-- Broker integration.
-- Inbox pattern.
+- Broker-ready structure.
 - Contract tests.
 - Deployment skeleton.
 - Strict guardrails.
