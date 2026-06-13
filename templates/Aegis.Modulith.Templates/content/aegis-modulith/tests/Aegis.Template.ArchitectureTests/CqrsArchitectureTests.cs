@@ -150,20 +150,20 @@ public sealed class CqrsArchitectureTests
 
         yield return effectiveType;
 
-        if (effectiveType == typeof(string) ||
-            effectiveType.IsPrimitive ||
-            effectiveType.IsEnum ||
-            effectiveType.Namespace?.StartsWith("System", StringComparison.Ordinal) == true)
-        {
-            yield break;
-        }
-
         foreach (var argument in effectiveType.GetGenericArguments())
         {
             foreach (var nested in FlattenResponseTypes(argument, visited))
             {
                 yield return nested;
             }
+        }
+
+        if (effectiveType == typeof(string) ||
+            effectiveType.IsPrimitive ||
+            effectiveType.IsEnum ||
+            effectiveType.Namespace?.StartsWith("System", StringComparison.Ordinal) == true)
+        {
+            yield break;
         }
 
         foreach (var memberType in PublicMemberTypes(effectiveType))
