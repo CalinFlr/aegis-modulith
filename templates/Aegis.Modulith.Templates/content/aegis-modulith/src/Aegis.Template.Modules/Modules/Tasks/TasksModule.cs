@@ -23,8 +23,11 @@ public sealed class TasksModule : IAegisModule
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Postgres")
-            ?? throw new InvalidOperationException("ConnectionStrings:Postgres must be configured for the Tasks module.");
+        var connectionString = configuration.GetConnectionString("Postgres");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("ConnectionStrings:Postgres must be configured for the Tasks module.");
+        }
 
         services.AddDbContext<TasksDbContext>(options =>
             options.UseNpgsql(connectionString));

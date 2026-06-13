@@ -57,11 +57,18 @@ public sealed class DeploymentSkeletonTests
         var productionSettingsContent = File.ReadAllText(productionSettings);
         Assert.Contains("\"Postgres\": \"\"", productionSettingsContent, StringComparison.Ordinal);
         Assert.Contains("\"SigningKey\": \"\"", productionSettingsContent, StringComparison.Ordinal);
+        Assert.Contains("\"AllowedHosts\": \"example.invalid\"", productionSettingsContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"AllowedHosts\": \"\"", productionSettingsContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"AllowedHosts\": \"*\"", productionSettingsContent, StringComparison.Ordinal);
         Assert.Contains("\"EnableBackgroundProcessor\": false", productionSettingsContent, StringComparison.Ordinal);
 
         var composeContent = File.ReadAllText(compose);
         Assert.Contains("postgres:17-alpine", composeContent, StringComparison.Ordinal);
         Assert.Contains("Set POSTGRES_PASSWORD", composeContent, StringComparison.Ordinal);
+        Assert.Contains("${Authentication__Jwt__Issuer:", composeContent, StringComparison.Ordinal);
+        Assert.Contains("${Authentication__Jwt__Audience:", composeContent, StringComparison.Ordinal);
+        Assert.Contains("${Authentication__Jwt__SigningKey:", composeContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("${JWT_", composeContent, StringComparison.Ordinal);
         Assert.DoesNotContain("Password=postgres", composeContent, StringComparison.OrdinalIgnoreCase);
 
         var docsContent = File.ReadAllText(deploymentDocs);
@@ -69,6 +76,28 @@ public sealed class DeploymentSkeletonTests
         Assert.Contains("No registry, organization, repository, cloud provider, or deployment target is hardcoded", docsContent, StringComparison.Ordinal);
         Assert.Contains("/health", docsContent, StringComparison.Ordinal);
         Assert.Contains("No collector is required by default", docsContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Generated_modules_fail_fast_when_postgres_connection_string_is_blank()
+    {
+        var profile = ArchitectureTestContext.GetOption("AegisProfile");
+        if (profile == "core")
+        {
+            return;
+        }
+
+        foreach (var moduleFile in Directory.EnumerateFiles(ArchitectureTestContext.ModulesRoot, "*Module.cs", SearchOption.AllDirectories))
+        {
+            var content = File.ReadAllText(moduleFile);
+            if (!content.Contains("GetConnectionString(\"Postgres\")", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            Assert.Contains("string.IsNullOrWhiteSpace(connectionString)", content, StringComparison.Ordinal);
+            Assert.Contains("ConnectionStrings:Postgres must be configured", content, StringComparison.Ordinal);
+        }
     }
 
     [Fact]

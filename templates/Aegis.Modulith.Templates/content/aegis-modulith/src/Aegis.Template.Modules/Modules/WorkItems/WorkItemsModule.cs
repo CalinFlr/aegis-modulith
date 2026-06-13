@@ -23,8 +23,11 @@ public sealed class WorkItemsModule : IAegisModule
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Postgres")
-            ?? throw new InvalidOperationException("ConnectionStrings:Postgres must be configured for the WorkItems module.");
+        var connectionString = configuration.GetConnectionString("Postgres");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("ConnectionStrings:Postgres must be configured for the WorkItems module.");
+        }
 
         services.AddDbContext<WorkItemsDbContext>(options =>
             options.UseNpgsql(connectionString));

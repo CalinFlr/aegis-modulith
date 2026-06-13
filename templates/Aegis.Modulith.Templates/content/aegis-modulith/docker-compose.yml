@@ -7,9 +7,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB};Username=${POSTGRES_USER:?Set POSTGRES_USER};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
-      Authentication__Jwt__Issuer: ${JWT_ISSUER:-https://issuer.example}
-      Authentication__Jwt__Audience: ${JWT_AUDIENCE:-aegis-api}
-      Authentication__Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY}
+      Authentication__Jwt__Issuer: ${Authentication__Jwt__Issuer:-https://issuer.example}
+      Authentication__Jwt__Audience: ${Authentication__Jwt__Audience:-aegis-api}
+      Authentication__Jwt__SigningKey: ${Authentication__Jwt__SigningKey:?Set Authentication__Jwt__SigningKey}
       Authentication__Jwt__RequireHttpsMetadata: "false"
       OTEL_SERVICE_NAME: Aegis.Template.Api
       Inbox__EnableBackgroundProcessor: "false"

@@ -15,8 +15,11 @@ public sealed class AuditModule : IAegisModule
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Postgres")
-            ?? throw new InvalidOperationException("ConnectionStrings:Postgres must be configured for the Audit module.");
+        var connectionString = configuration.GetConnectionString("Postgres");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("ConnectionStrings:Postgres must be configured for the Audit module.");
+        }
 
         services.AddDbContext<AuditDbContext>(options =>
             options.UseNpgsql(connectionString));
