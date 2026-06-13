@@ -25,6 +25,7 @@ public static class ProProfileServices
     {
         endpoints.MapGet("/operations/outbox", (Outbox.OutboxDispatcher dispatcher) => Results.Ok(dispatcher.Describe()))
             .WithName("GetOutboxStatus")
+            .Produces(StatusCodes.Status200OK)
             .RequireAuthorization(Aegis.Template.BuildingBlocks.Authorization.AegisAuthorizationPolicies.OperationsRead);
 
         return endpoints;

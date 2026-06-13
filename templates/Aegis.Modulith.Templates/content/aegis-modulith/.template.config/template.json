@@ -33,6 +33,7 @@
             "src/Aegis.Template.Api/Pro/**",
             "src/Aegis.Template.AppHost/**",
             "src/Aegis.Template.ServiceDefaults/**",
+            "tests/Aegis.Template.ContractTests/**",
             "tests/Aegis.Template.IntegrationTests/**"
           ]
         },

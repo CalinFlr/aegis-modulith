@@ -61,3 +61,9 @@ Generated pro and advanced integration tests use fake authentication instead of 
 The fake auth handler is generated only under `tests/<App>.IntegrationTests`. Production `Program.cs` does not wire the fake scheme.
 
 Test clients can provide roles, scopes, and permissions through `X-Test-*` headers, including `X-Test-Permissions`, so permission policies can be tested without an external identity provider.
+
+## Contract Checks
+
+Generated pro and advanced contract tests assert that permission policy constants are registered as named policies and that protected endpoints expose those named policy values in endpoint metadata.
+
+They also assert that generated OpenAPI exposes JWT bearer security metadata and does not expose fake-auth headers or the `Aegis.Test` test scheme as part of the production API contract.

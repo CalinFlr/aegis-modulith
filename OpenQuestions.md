@@ -231,6 +231,51 @@ Use this template:
 - Created: 2026-06-09
 - Resolved: N/A
 
+### Q-20260609-008: Use semantic contract assertions instead of full OpenAPI snapshots
+
+- Status: inferred
+- Risk: medium
+- Owner: human
+- Source: P1D-3A implementation
+- Affected areas: templates, generated contract tests, smoke tests, docs
+- Question: Should generated API contract tests use semantic OpenAPI and endpoint metadata assertions instead of full OpenAPI document snapshots?
+- Context: Full OpenAPI snapshots would be brittle for harmless ordering and formatting changes. P1D-3A asks to prefer semantic assertions.
+- Proposed default: Assert routes, methods, declared status codes, declared content types, JWT bearer security scheme, and authorization metadata semantically.
+- Impact if different: Snapshot testing would need normalization rules and broader documentation to prevent noisy failures.
+- Current action: implement default
+- Created: 2026-06-09
+- Resolved: N/A
+
+### Q-20260609-009: Add lightweight integration event type/version metadata
+
+- Status: inferred
+- Risk: medium
+- Owner: human
+- Source: P1D-3A implementation
+- Affected areas: BuildingBlocks events, module contracts, item event template, inbox handler, generated contract tests, docs
+- Question: Should generated integration events carry explicit type/version metadata for contract tests?
+- Context: Existing integration events had `Id` and `OccurredAtUtc`, but no stable contract type/version metadata for drift checks.
+- Proposed default: Add `IntegrationEventContractAttribute` with a stable type string and positive integer version, and use it in inbox handler message-type matching.
+- Impact if different: Tests would need to infer event names from CLR names, making contract identity less transparent for consumers.
+- Current action: implement default
+- Created: 2026-06-09
+- Resolved: N/A
+
+### Q-20260609-010: Generate contract test foundation only for pro and advanced
+
+- Status: inferred
+- Risk: medium
+- Owner: human
+- Source: P1D-3A implementation
+- Affected areas: profile behavior, generated solution, generated docs, smoke assertions
+- Question: Should core include the generated pro/advanced contract test project?
+- Context: P1D-3A primarily applies to pro and advanced, and core must remain lightweight.
+- Proposed default: Exclude `tests/<App>.ContractTests` from core and document the exclusion in generated `docs/contracts.md`.
+- Impact if different: Core would pull in additional test infrastructure and a larger default solution surface.
+- Current action: implement default
+- Created: 2026-06-09
+- Resolved: N/A
+
 ## Blockers
 
 No known blockers at pack creation time.

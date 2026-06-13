@@ -14,6 +14,7 @@ Rules:
 - API responses use DTOs, not EF entities.
 - Event sourcing is not enabled by default.
 - Inbox/idempotency scaffolding is generated for `pro` and `advanced`; see [Messaging](messaging.md).
+- Contract test guidance lives in [Contracts](contracts.md).
 
 #if (profile != "core")
 See [Authentication And Permissions](authentication.md) for generated JWT bearer and permission-policy scaffolding.

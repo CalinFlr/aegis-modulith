@@ -44,4 +44,6 @@ Handler failures mark the row `Failed` and store `FailureReason`. The simple pro
 
 Integration event contracts live under module `Contracts` folders. Inbox handlers consume those contracts and must not deserialize domain entities as payloads.
 
+P1D-3A adds a lightweight contract-testing convention for integration events: generated integration event records declare `IntegrationEventContractAttribute` with a stable type name and positive integer version. The generated inbox sample handler uses that metadata as its message type. This is contract metadata only; it is not event sourcing and it does not add a broker.
+
 The outbox and inbox solve opposite sides of message flow: outbox records outbound integration messages before publishing, while inbox records inbound integration messages before handling. Both remain state-based database scaffolds. Neither adds event sourcing or a broker dependency.

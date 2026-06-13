@@ -20,10 +20,12 @@ dotnet test -c Release
 `template:smoke` builds and tests generated core, pro, advanced, and mediator variants. It also asserts P1D-1 semantics for generated pro and advanced outputs without starting Docker.
 It now also asserts P1D-2A JWT/auth and permission-policy semantics without issuing real JWTs or calling an external identity provider.
 It also asserts P1D-2B inbox semantics without requiring a broker or Docker.
+It also asserts P1D-3A generated API and integration-contract test semantics without requiring Docker, a broker, an external identity provider, or external services.
 
 ## Pro And Advanced Integration Tests
 
 Generated pro and advanced outputs include `tests/<App>.IntegrationTests`.
+They also include `tests/<App>.ContractTests` for API and integration-contract drift detection.
 
 That test project contains:
 
@@ -60,6 +62,14 @@ Generated permission-policy tests use fake auth to prove that a request with the
 Generated pro and advanced integration tests include fast inbox behavior tests under `tests/<App>.IntegrationTests/Inbox`.
 
 They use EF InMemory and prove first acceptance, duplicate detection, processed-message idempotency, failure state, and single handler invocation for duplicate inputs. They do not require Docker or a message broker.
+
+## Contract Tests
+
+Generated pro and advanced contract tests live under `tests/<App>.ContractTests`.
+
+They use semantic assertions over endpoint metadata, OpenAPI JSON, integration event metadata, and JSON round trips. They verify routes, methods, declared status codes, declared content types, JWT bearer OpenAPI metadata, named permission policies, fake-auth isolation, integration event type/version metadata, domain/integration event separation, and inbox payload identity fields.
+
+These tests are not performance smoke tests. They do not require Docker, a broker, an external identity provider, real JWT issuance, or external services.
 
 ## HttpClient Resilience
 

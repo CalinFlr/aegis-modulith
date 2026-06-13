@@ -80,6 +80,16 @@
 - [x] Core generated output excludes active inbox infrastructure by default.
 - [x] Default template smoke asserts P1D-2B semantics without requiring Docker or a broker.
 
+## P1D-3A generated contract tests
+
+- [x] Pro and advanced generated outputs include a generated contract test project in the solution.
+- [x] API contract tests verify OpenAPI production, route/method/status/content-type semantics, JWT bearer OpenAPI metadata, named permission policy metadata, fake-auth exclusion, and generated sample endpoint coverage.
+- [x] Integration event contract tests verify `System.Text.Json` round trips, lightweight event type/version metadata, contract-folder placement, and domain/integration event separation.
+- [x] Inbox contract tests verify serialized payload identity fields, `MessageId`, `IdempotencyKey`, integration event message type, and no broker dependency.
+- [x] Generated architecture tests assert production projects do not reference contract tests and integration contracts do not depend on infrastructure.
+- [x] Core generated output excludes the pro/advanced contract test project by default.
+- [x] Default template smoke asserts P1D-3A semantics without requiring Docker, a broker, an external identity provider, or external services.
+
 ## Documentation
 
 - [x] README includes golden path.

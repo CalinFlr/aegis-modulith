@@ -2,6 +2,7 @@ using AegisBuildingBlocksNamespace.Events;
 
 namespace AegisItemRootNamespace.Modules.AegisEventModule.Contracts.IntegrationEvents;
 
+[IntegrationEventContract("AegisEventModule.Aegis.Event", 1)]
 public sealed record Aegis.EventIntegrationEvent(
     Guid Id,
     Guid AggregateId,

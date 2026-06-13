@@ -487,6 +487,129 @@ function assertP1D2BInboxSemantics(errors, output, variant) {
   assertContains(errors, messagingDocs, `tests/${variant.name}.IntegrationTests`, `${variant.id} messaging docs should point to generated inbox tests.`);
 }
 
+function assertP1D3AContractTestSemantics(errors, output, variant) {
+  const solution = join(output, `${variant.name}.sln`);
+  const docs = join(output, "docs", "contracts.md");
+  const contractRoot = join(output, "tests", `${variant.name}.ContractTests`);
+  const contractProject = join(contractRoot, `${variant.name}.ContractTests.csproj`);
+  const apiContractTests = join(contractRoot, "ApiContractTests.cs");
+  const integrationEventContractTests = join(contractRoot, "IntegrationEventContractTests.cs");
+  const inboxContractTests = join(contractRoot, "InboxContractTests.cs");
+  const apiProject = join(output, "src", `${variant.name}.Api`, `${variant.name}.Api.csproj`);
+  const modulesProject = join(output, "src", `${variant.name}.Modules`, `${variant.name}.Modules.csproj`);
+  const buildingBlocksProject = join(output, "src", `${variant.name}.BuildingBlocks`, `${variant.name}.BuildingBlocks.csproj`);
+  const integrationEventBase = join(output, "src", `${variant.name}.BuildingBlocks`, "Events", "IntegrationEvent.cs");
+  const openApiRegistration = join(output, "src", `${variant.name}.Api`, "Pro", "Auth", "AegisOpenApiServiceCollectionExtensions.cs");
+  const program = join(output, "src", `${variant.name}.Api`, "Program.cs");
+  const sampleContract = variant.sample === "taskhub"
+    ? join(output, "src", `${variant.name}.Modules`, "Modules", "Tasks", "Contracts", "TaskCreatedIntegrationEvent.cs")
+    : join(output, "src", `${variant.name}.Modules`, "Modules", "WorkItems", "Contracts", "WorkItemCreatedIntegrationEvent.cs");
+
+  assertExists(errors, docs, `${variant.id} should include generated contract testing docs.`);
+
+  if (variant.profile === "core") {
+    assertMissing(errors, contractRoot, `${variant.id} core profile should not include the pro/advanced contract test project.`);
+    assertNotContains(errors, solution, "ContractTests", `${variant.id} core solution should not include contract tests.`);
+    assertMissing(errors, openApiRegistration, `${variant.id} core profile should not include pro OpenAPI auth contract metadata.`);
+    assertContains(errors, docs, "Core does not generate the pro/advanced contract test project", `${variant.id} contract docs should explain core exclusion.`);
+    return;
+  }
+
+  assertExists(errors, contractProject, `${variant.id} pro/advanced profile should include generated contract tests.`);
+  assertContains(errors, solution, `${variant.name}.ContractTests`, `${variant.id} solution should include contract tests so dotnet test runs them.`);
+  if (existsSync(contractProject)) {
+    const contractProjectContent = readAbsolute(contractProject).replaceAll("\\", "/");
+    if (!contractProjectContent.includes(`${variant.name}.Api/${variant.name}.Api.csproj`)) {
+      errors.push(`${variant.id} contract tests should reference the API project.`);
+    }
+    if (!contractProjectContent.includes(`${variant.name}.BuildingBlocks/${variant.name}.BuildingBlocks.csproj`)) {
+      errors.push(`${variant.id} contract tests should reference BuildingBlocks.`);
+    }
+    if (!contractProjectContent.includes(`${variant.name}.Modules/${variant.name}.Modules.csproj`)) {
+      errors.push(`${variant.id} contract tests should reference Modules.`);
+    }
+  }
+  assertContains(errors, contractProject, "Microsoft.AspNetCore.Mvc.Testing", `${variant.id} contract tests should use WebApplicationFactory for OpenAPI metadata.`);
+  assertNotContains(errors, contractProject, "Testcontainers.PostgreSql", `${variant.id} contract tests should not require Docker/Testcontainers.`);
+
+  for (const productionProject of [apiProject, modulesProject, buildingBlocksProject]) {
+    assertNotContains(errors, productionProject, "ContractTests", `${variant.id} production projects must not reference contract tests.`);
+  }
+
+  assertContains(errors, program, "AddAegisOpenApi", `${variant.id} pro/advanced Program.cs should wire OpenAPI contract metadata.`);
+  assertContains(errors, openApiRegistration, "BearerSecuritySchemeTransformer", `${variant.id} should declare an OpenAPI bearer security scheme transformer.`);
+  assertContains(errors, openApiRegistration, "AddOperationTransformer", `${variant.id} should declare protected endpoint security requirements in OpenAPI.`);
+  assertContains(errors, openApiRegistration, "IAuthorizeData", `${variant.id} OpenAPI security requirements should be based on authorization metadata.`);
+  assertContains(errors, openApiRegistration, "JwtBearerDefaults.AuthenticationScheme", `${variant.id} OpenAPI bearer scheme should reflect generated JWT auth.`);
+
+  assertContains(errors, integrationEventBase, "IntegrationEventContractAttribute", `${variant.id} should include integration event contract metadata.`);
+  assertContains(errors, integrationEventBase, "IntegrationEventContractMetadata", `${variant.id} should include integration event contract metadata helper.`);
+  assertContains(errors, sampleContract, "IntegrationEventContract(", `${variant.id} sample integration event should declare type/version metadata.`);
+
+  for (const [path, description] of [
+    [apiContractTests, "API contract tests"],
+    [integrationEventContractTests, "integration event contract tests"],
+    [inboxContractTests, "inbox contract tests"]
+  ]) {
+    assertExists(errors, path, `${variant.id} missing ${description}.`);
+    for (const token of ["Aegis.Template", "AegisProfileValue", "AegisMediatorValue", "AegisSampleValue"]) {
+      assertNotContains(errors, path, token, `${variant.id} contract tests contain unresolved template token ${token}.`);
+    }
+  }
+
+  for (const marker of [
+    "OpenApi_document_can_be_produced_and_declares_jwt_bearer_security_scheme",
+    "Expected_routes_methods_status_codes_and_content_types_are_declared",
+    "Protected_endpoints_expose_named_permission_policy_metadata",
+    "Permission_policy_constants_are_registered_as_named_policies",
+    "Production_api_contract_does_not_reference_fake_auth_test_infrastructure",
+    "AegisAuthorizationPolicies",
+    "securitySchemes",
+    "Bearer",
+    "application/json"
+  ]) {
+    assertContains(errors, apiContractTests, marker, `${variant.id} API contract tests should cover ${marker}.`);
+  }
+
+  const expectedRouteMarker = variant.sample === "taskhub" ? "/tasks/" : "/work-items/";
+  assertContains(errors, apiContractTests, expectedRouteMarker, `${variant.id} API contract tests should cover generated sample endpoints.`);
+  if (variant.profile === "advanced") {
+    assertContains(errors, apiContractTests, "/operations/advanced", `${variant.id} advanced contract tests should cover the advanced endpoint.`);
+  }
+
+  for (const marker of [
+    "Integration_events_have_type_and_version_metadata_and_live_under_contracts",
+    "Integration_event_contracts_round_trip_with_system_text_json",
+    "Domain_events_and_integration_events_remain_distinct",
+    "Inbox_handler_consumes_integration_contract_metadata_not_domain_entities",
+    "System.Text.Json",
+    "IntegrationEventContractAttribute",
+    "IntegrationEventContractMetadata",
+    ".Contracts",
+    ".Domain"
+  ]) {
+    assertContains(errors, integrationEventContractTests, marker, `${variant.id} integration event contract tests should cover ${marker}.`);
+  }
+
+  for (const marker of [
+    "Inbox_message_payload_contract_is_serializable_and_keeps_message_identity",
+    "Inbox_contract_tests_do_not_require_broker_dependencies_or_exactly_once_claims",
+    "MessageId",
+    "IdempotencyKey",
+    "IntegrationEventContractMetadata",
+    "MassTransit",
+    "RabbitMQ",
+    "broker-level exactly-once"
+  ]) {
+    assertContains(errors, inboxContractTests, marker, `${variant.id} inbox contract tests should cover ${marker}.`);
+  }
+
+  assertContains(errors, docs, "## Generated Contract Tests", `${variant.id} contract docs should describe generated contract tests.`);
+  assertContains(errors, docs, "not performance tests", `${variant.id} contract docs should state these are not performance tests.`);
+  assertContains(errors, docs, "No broker, external identity provider, Docker runtime, or external service is required", `${variant.id} contract docs should state default independence.`);
+  assertContains(errors, docs, `tests/${variant.name}.ContractTests`, `${variant.id} contract docs should name the generated contract test project.`);
+}
+
 function assertAiSemantics(errors, output, variant) {
   const aiFiles = [
     "AGENTS.md",
@@ -762,6 +885,7 @@ function assertArchitectureTestSemantics(errors, output, variant) {
     "ModuleManifestTests.cs",
     "DomainIsolationTests.cs",
     "CqrsArchitectureTests.cs",
+    "ContractBoundaryTests.cs",
     "ApiEndpointTests.cs",
     "InboxArchitectureTests.cs",
     "PersistenceArchitectureTests.cs",
@@ -856,6 +980,12 @@ function assertArchitectureTestSemantics(errors, output, variant) {
   assertContains(errors, inboxTests, "Domain_code_does_not_reference_inbox_infrastructure", `${variant.id} architecture tests should keep inbox infrastructure out of Domain code.`);
   assertContains(errors, inboxTests, "Inbox_processing_uses_integration_event_contracts", `${variant.id} architecture tests should assert inbox processing uses integration contracts.`);
   assertContains(errors, inboxTests, "Generated_inbox_does_not_reference_a_broker_by_default", `${variant.id} architecture tests should assert no broker dependency by default.`);
+
+  const contractBoundaryTests = join(architectureRoot, "ContractBoundaryTests.cs");
+  assertContains(errors, contractBoundaryTests, "Contract_test_project_matches_selected_profile", `${variant.id} architecture tests should assert contract-test profile behavior.`);
+  assertContains(errors, contractBoundaryTests, "Production_projects_do_not_reference_contract_tests", `${variant.id} architecture tests should assert production projects do not reference contract tests.`);
+  assertContains(errors, contractBoundaryTests, "Integration_contracts_do_not_depend_on_infrastructure", `${variant.id} architecture tests should assert integration contracts do not depend on infrastructure.`);
+  assertContains(errors, contractBoundaryTests, "Production_api_contract_does_not_reference_fake_auth_test_infrastructure", `${variant.id} architecture tests should assert production API contracts do not reference fake auth.`);
 }
 
 function assertItemModuleSemantics(errors, moduleRoot, variant) {
@@ -1136,6 +1266,7 @@ async function checkDocs() {
     "docs/cli-template-spec.md",
     "docs/implementation-plan.md",
     "docs/testing.md",
+    "docs/contracts.md",
     "docs/messaging.md",
     "docs/acceptance-criteria.md",
     "docs/git-plan.md",
@@ -1330,6 +1461,7 @@ async function checkTemplateSmoke() {
     assertP1DFeatureDepthSemantics(errors, output, variant);
     assertP1D2AAuthPermissionSemantics(errors, output, variant);
     assertP1D2BInboxSemantics(errors, output, variant);
+    assertP1D3AContractTestSemantics(errors, output, variant);
     assertAiSemantics(errors, output, variant);
     assertGuardrailSemantics(errors, output, variant);
     assertHookSemantics(errors, output, variant);
