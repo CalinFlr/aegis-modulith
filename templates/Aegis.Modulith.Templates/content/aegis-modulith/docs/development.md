@@ -34,3 +34,5 @@ dotnet new aegis-event -n InvoiceIssued --module Billing --scope integration --r
 ```
 
 Run `dotnet build -c Release` after adding item templates. If you build the generated module item project directly, the aggregate modules project excludes nested `bin` and `obj` folders.
+
+See `docs/testing.md` for generated integration test and Docker-backed Testcontainers guidance.

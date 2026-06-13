@@ -141,6 +141,36 @@ Use this template:
 - Created: 2026-06-09
 - Resolved: N/A
 
+### Q-20260609-002: Keep generated Testcontainers tests opt-in
+
+- Status: inferred
+- Risk: medium
+- Owner: human
+- Source: P1D-1 implementation
+- Affected areas: templates, generated integration tests, smoke tests, docs, CI
+- Question: Should generated Testcontainers PostgreSQL integration tests run during the default template smoke matrix?
+- Context: Testcontainers requires local Docker or a compatible container runtime. Docker availability varies across developer machines and CI agents, and the P1D-1 goal says default smoke must not require Docker.
+- Proposed default: Generate the Docker-backed tests for pro and advanced profiles, but skip them by default unless `AEGIS_RUN_TESTCONTAINERS=true` is set.
+- Impact if different: Default smoke and generated `dotnet test` could fail on machines without Docker; CI would need explicit Docker setup and separate runtime validation.
+- Current action: implement default
+- Created: 2026-06-09
+- Resolved: N/A
+
+### Q-20260609-003: Keep fake authentication test-only until auth scaffolding
+
+- Status: inferred
+- Risk: high
+- Owner: human
+- Source: P1D-1 implementation
+- Affected areas: generated integration tests, auth test infrastructure, docs, future P1D-2 auth scaffolding
+- Question: Should fake authentication be available anywhere outside generated test projects before real JWT/auth scaffolding exists?
+- Context: P1D-1 needs a fake auth test foundation, but P1D-2 JWT/auth scaffolding, permissions, and authorization policy work are explicitly out of scope.
+- Proposed default: Keep fake authentication only under generated integration test projects and enable it only through the test `WebApplicationFactory`.
+- Impact if different: Production code would need real auth/authz design, documentation, and tests from P1D-2 before fake or real schemes could be safely exposed.
+- Current action: implement default
+- Created: 2026-06-09
+- Resolved: N/A
+
 ## Blockers
 
 No known blockers at pack creation time.

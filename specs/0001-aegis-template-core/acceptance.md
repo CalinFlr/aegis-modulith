@@ -49,6 +49,16 @@
 - [x] Smoke asserts architecture test project/files, coverage markers, module manifest assertions, profile/mediator assertions, and no unresolved architecture-test template tokens.
 - [x] Architecture documentation includes focused CQRS-lite and vertical-slice rule pages.
 
+## P1D-1 pro/advanced feature-depth foundation
+
+- [x] Pro and advanced generated outputs include a Testcontainers PostgreSQL integration test project.
+- [x] Pro and advanced generated outputs include a PostgreSQL container fixture, API factory connection override, opt-in Docker guard, and migration placeholder.
+- [x] Pro and advanced generated outputs include fake authentication test infrastructure, authenticated client helpers, and a fake-auth smoke test.
+- [x] Production `Program.cs` does not enable fake authentication.
+- [x] Pro and advanced generated outputs include Microsoft HttpClient resilience package references, default registration, and a typed placeholder client.
+- [x] Core generated output excludes P1D-1 Testcontainers, fake-auth, and HttpClient resilience assets.
+- [x] Default template smoke asserts P1D-1 semantics without requiring Docker.
+
 ## Documentation
 
 - [x] README includes golden path.

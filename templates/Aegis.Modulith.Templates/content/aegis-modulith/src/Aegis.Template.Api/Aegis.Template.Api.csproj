@@ -15,6 +15,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <!--#if (profile != "core") -->
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+    <!--#endif -->
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
   </ItemGroup>
