@@ -26,6 +26,7 @@ dotnet test -c Release
 ## Run
 
 ```bash
+dotnet user-secrets init --project src/Aegis.Template.Api
 dotnet user-secrets set "ConnectionStrings:Postgres" "Host=localhost;Port=5432;Database=aegis_template;Username=<user>;Password=<password>" --project src/Aegis.Template.Api
 dotnet run --project src/Aegis.Template.Api
 ```
