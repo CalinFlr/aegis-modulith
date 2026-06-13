@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 
 namespace Aegis.Template.IntegrationTests.Authentication;
@@ -26,31 +27,37 @@ public static class FakeAuthenticationHeaders
         headers[FakeAuthenticationDefaults.ScopesHeader] = string.Join(",", user.Scopes);
     }
 
-    public static TestUser Read(IHeaderDictionary headers)
+    public static bool TryRead(IHeaderDictionary headers, [NotNullWhen(true)] out TestUser? user)
     {
-        var userId = ReadHeader(headers, FakeAuthenticationDefaults.UserIdHeader, TestUsers.Reader.UserId);
-        var userName = ReadHeader(headers, FakeAuthenticationDefaults.UserNameHeader, TestUsers.Reader.UserName);
-        var roles = ReadCsvHeader(headers, FakeAuthenticationDefaults.RolesHeader, TestUsers.Reader.Roles);
-        var scopes = ReadCsvHeader(headers, FakeAuthenticationDefaults.ScopesHeader, TestUsers.Reader.Scopes);
+        var userId = ReadHeader(headers, FakeAuthenticationDefaults.UserIdHeader);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            user = null;
+            return false;
+        }
 
-        return new TestUser(userId, userName, roles, scopes);
+        var userName = ReadHeader(headers, FakeAuthenticationDefaults.UserNameHeader) ?? userId;
+        var roles = ReadCsvHeader(headers, FakeAuthenticationDefaults.RolesHeader);
+        var scopes = ReadCsvHeader(headers, FakeAuthenticationDefaults.ScopesHeader);
+
+        user = new TestUser(userId, userName, roles, scopes);
+        return true;
     }
 
-    private static string ReadHeader(IHeaderDictionary headers, string header, string fallback)
+    private static string? ReadHeader(IHeaderDictionary headers, string header)
     {
         return headers.TryGetValue(header, out var value) && !string.IsNullOrWhiteSpace(value)
             ? value.ToString()
-            : fallback;
+            : null;
     }
 
     private static IReadOnlyCollection<string> ReadCsvHeader(
         IHeaderDictionary headers,
-        string header,
-        IReadOnlyCollection<string> fallback)
+        string header)
     {
         if (!headers.TryGetValue(header, out var value) || string.IsNullOrWhiteSpace(value))
         {
-            return fallback;
+            return [];
         }
 
         return value.ToString()

@@ -13,7 +13,11 @@ public sealed class FakeAuthenticationHandler(
 {
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var user = FakeAuthenticationHeaders.Read(Request.Headers);
+        if (!FakeAuthenticationHeaders.TryRead(Request.Headers, out var user))
+        {
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.UserId),
