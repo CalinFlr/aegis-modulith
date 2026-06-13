@@ -173,7 +173,7 @@ Use this template:
 
 ### Q-20260609-004: Use JWT bearer scaffold with claim-based permissions
 
-- Status: inferred
+- Status: explicit-review-gate
 - Risk: high
 - Owner: human
 - Source: P1D-2A implementation
@@ -182,7 +182,7 @@ Use this template:
 - Context: P1D-2A requires practical auth scaffolding, not a full identity provider integration, login flow, user database, or RBAC/ABAC engine.
 - Proposed default: Generate JWT bearer scaffolding for pro/advanced, reject tokens when required JWT settings are missing, represent permissions as claims registered as named policies, and keep fake auth only in integration tests.
 - Impact if different: A bundled identity provider, database-backed users, or full role/permission engine would require a separate security design, additional dependencies, broader docs, and more validation beyond P1D-2A.
-- Current action: implement default
+- Current action: implement default behind PR review, CI, security guardrail, and explicit maintainer merge gate before release.
 - Created: 2026-06-09
 - Resolved: N/A
 
