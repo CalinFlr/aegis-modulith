@@ -34,28 +34,59 @@ public sealed class PersistenceArchitectureTests
             var content = File.ReadAllText(dbContextFile);
 
             Assert.Contains("HasDefaultSchema", content, StringComparison.Ordinal);
-            Assert.Matches(new Regex($@"HasDefaultSchema\s*\(\s*""{Regex.Escape(schema)}""\s*\)"), content);
+            var literalSchema = Regex.IsMatch(content, $@"HasDefaultSchema\s*\(\s*""{Regex.Escape(schema)}""\s*\)");
+            var constantSchema = Regex.IsMatch(content, $@"const\s+string\s+Schema\s*=\s*""{Regex.Escape(schema)}""") &&
+                Regex.IsMatch(content, @"HasDefaultSchema\s*\(\s*Schema\s*\)");
+            Assert.True(literalSchema || constantSchema, $"{ArchitectureTestContext.Relative(dbContextFile)} must set the default schema to {schema}.");
         }
     }
 
     [Fact]
-    public void Generated_dbcontexts_do_not_configure_foreign_keys_by_default()
+    public void Generated_sources_do_not_configure_cross_module_foreign_keys()
     {
-        var forbiddenMarkers = new[]
+        var relationshipMarkers = new[]
         {
             ".HasForeignKey(",
             "HasForeignKey<",
-            "[ForeignKey"
+            ".HasOne(",
+            ".HasMany(",
+            ".WithOne(",
+            ".WithMany(",
+            "[ForeignKey",
+            "[InverseProperty",
+            "System.ComponentModel.DataAnnotations.Schema"
         };
+        var failures = new List<string>();
 
-        foreach (var dbContextFile in Directory.GetFiles(ArchitectureTestContext.ModulesRoot, "*DbContext.cs", SearchOption.AllDirectories))
+        foreach (var moduleFolder in ArchitectureTestContext.ModuleFolders)
         {
-            var content = File.ReadAllText(dbContextFile);
-            foreach (var marker in forbiddenMarkers)
+            var moduleName = Path.GetFileName(moduleFolder);
+            foreach (var sourceFile in ArchitectureTestContext.SourceFilesUnder(moduleFolder))
             {
-                Assert.DoesNotContain(marker, content, StringComparison.Ordinal);
+                var content = File.ReadAllText(sourceFile);
+                if (!relationshipMarkers.Any(marker => content.Contains(marker, StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
+                foreach (var otherModuleName in ArchitectureTestContext.ModuleNames.Where(name => name != moduleName))
+                {
+                    foreach (var forbiddenNamespace in new[]
+                             {
+                                 $".Modules.{otherModuleName}.Domain",
+                                 $".Modules.{otherModuleName}.Infrastructure"
+                             })
+                    {
+                        if (content.Contains(forbiddenNamespace, StringComparison.Ordinal))
+                        {
+                            failures.Add($"{ArchitectureTestContext.Relative(sourceFile)} configures an EF relationship to {forbiddenNamespace}.");
+                        }
+                    }
+                }
             }
         }
+
+        Assert.Empty(failures);
     }
 
     [Fact]

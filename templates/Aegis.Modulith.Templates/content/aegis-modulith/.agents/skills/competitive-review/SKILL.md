@@ -1,22 +1,38 @@
 ---
 name: competitive-review
-description: Use when comparing this generated app or template posture with other .NET starter or AI-assisted repositories.
+description: Use when making product, documentation, or positioning decisions by comparing Aegis.Modulith with other .NET starter, modular monolith, or AI-assisted development repositories.
 ---
 
-# Competitive Review
+# Competitive Review Skill
 
 ## Goal
 
-Compare capabilities and positioning without changing architecture by default.
+Ensure Aegis.Modulith learns from strong repositories without copying their weaknesses or drifting from its core positioning.
 
-## Procedure
+## Required context
 
-- Identify comparable repositories or templates.
-- Compare generated architecture, guardrails, docs, and validation.
-- Record findings in docs or a spec.
+Read:
+
+- `README.md`
+- `docs/getting-started.md`
+- `docs/architecture.md`
+- `docs/getting-started.md`
+- `OpenQuestions.md`
+
+## Rules
+
+- Do not turn Aegis into a heavy framework.
+- Do not make UI default.
+- Do not make microservices default.
+- Do not make event sourcing default.
+- Do not make MediatR default.
+- Preserve Aegis positioning as an AI-ready .NET modular monolith template system.
 
 ## Validation
 
+Run:
+
 ```bash
 npm run check:docs
+npm run check:specs
 ```

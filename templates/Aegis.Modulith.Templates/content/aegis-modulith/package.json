@@ -9,6 +9,7 @@
     "check:docs": "node tools/guardrails/check.mjs docs",
     "check:security": "node tools/guardrails/check.mjs security",
     "check:specs": "node tools/guardrails/check.mjs specs",
+    "check:manifests": "node tools/guardrails/check.mjs manifests",
     "template:smoke": "node tools/guardrails/check.mjs template-smoke"
   },
   "engines": {

@@ -2,21 +2,27 @@
 
 ## Purpose
 
-Review a spec before implementation.
+Review a spec before implementation or before merging a spec-driven change.
 
 ## Steps
 
-1. Check goals and non-goals.
-2. Check requirements are testable.
-3. Check risks and open questions.
-4. Check acceptance criteria are observable.
+1. Read `AGENTS.md`.
+2. Read the target spec folder.
+3. Check that goals and non-goals are clear.
+4. Check that requirements are testable.
+5. Check that acceptance criteria are observable.
+6. Check that risks include technical, security, licensing, and adoption concerns.
+7. Check that open questions are either local or promoted to root `OpenQuestions.md`.
+8. Check that durable architecture decisions have ADRs.
+9. Check that the plan can be implemented in small commits.
 
 ## Required validation
 
 ```bash
 npm run check:specs
+npm run check:docs
 ```
 
 ## Human approval
 
-Required when licensing, dependencies, security, CI, or public API behavior is unclear.
+Required if the review identifies high-risk assumptions, missing approval gates, unclear licensing, or security-sensitive behavior.
