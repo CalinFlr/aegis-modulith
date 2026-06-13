@@ -11,7 +11,7 @@ Generated with `Aegis.Modulith`.
 - AI assets: `AegisAiValue`
 - Guardrails: `AegisGuardrailsValue`
 - Hooks: `AegisHooksValue`
-- Skills: `AegisSkillsValue`
+- Skill generation: `AegisSkillsValue` applies only when enterprise AI assets are generated.
 - Docs: `AegisDocsValue`
 - License: `AegisLicenseExpressionValue`
 
@@ -23,16 +23,9 @@ dotnet build -c Release
 dotnet test -c Release
 ```
 
-#if (guardrails != "off")
-AI and repository guardrails are available through:
-
-```bash
-npm run check
-```
-
-#endif
 ## Run
 
 ```bash
+dotnet user-secrets set "ConnectionStrings:Postgres" "Host=localhost;Port=5432;Database=aegis_template;Username=<user>;Password=<password>" --project src/Aegis.Template.Api
 dotnet run --project src/Aegis.Template.Api
 ```

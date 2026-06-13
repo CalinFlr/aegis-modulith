@@ -34,9 +34,11 @@ function listFiles(dir, predicate = () => true) {
   const abs = join(root, dir);
   if (!existsSync(abs)) return [];
   const found = [];
+  const ignoredDirectories = new Set([".git", "artifacts", "bin", "node_modules", "obj"]);
 
   function walk(current) {
     for (const entry of readdirSync(current)) {
+      if (ignoredDirectories.has(entry)) continue;
       const full = join(current, entry);
       const st = statSync(full);
       if (st.isDirectory()) walk(full);
@@ -63,6 +65,56 @@ function assertContains(errors, path, expected, message) {
   }
 
   if (!read(path).includes(expected)) errors.push(message);
+}
+
+function readForbiddenActions(errors) {
+  const path = ".ai/policies/forbidden-actions.yaml";
+  if (!exists(path)) {
+    return [
+      { pattern: "rm -rf", reason: "Destructive command", block: true, builtIn: true },
+      { pattern: "TreatWarningsAsErrors>false", reason: "Do not weaken build quality", block: true, builtIn: true },
+      { pattern: "NoWarn", reason: "Suppressing warnings requires maintainer approval", requiresApproval: true, builtIn: true },
+      { path: "**/.env", block: true, builtIn: true },
+      { path: "**/*secret*", requiresApproval: true, builtIn: true }
+    ];
+  }
+
+  const entries = [];
+  let current = null;
+  for (const line of read(path).split(/\r?\n/)) {
+    const item = line.match(/^\s*-\s+(pattern|path):\s*"([^"]+)"\s*$/);
+    if (item) {
+      current = { [item[1]]: item[2] };
+      entries.push(current);
+      continue;
+    }
+
+    const property = line.match(/^\s+(reason|requiresApproval|block):\s*(?:"([^"]+)"|(true|false))\s*$/);
+    if (property && current) {
+      current[property[1]] = property[2] ?? property[3] === "true";
+    }
+  }
+
+  if (entries.length === 0) {
+    errors.push("forbidden-actions.yaml must contain at least one forbidden entry.");
+  }
+
+  for (const entry of entries) {
+    if (!entry.pattern && !entry.path) errors.push("Every forbidden action entry must define pattern or path.");
+    if (!entry.reason && entry.pattern) errors.push(`Forbidden pattern ${entry.pattern} must include a reason.`);
+    if (entry.block !== true && entry.requiresApproval !== true) {
+      errors.push(`Forbidden entry ${entry.pattern ?? entry.path} must set block or requiresApproval.`);
+    }
+  }
+
+  return entries;
+}
+
+function matchesForbiddenPath(pattern, file) {
+  if (pattern === "**/.env") return file === ".env" || file.endsWith("/.env");
+  if (pattern === "**/*secret*") return file.toLowerCase().includes("secret");
+  if (pattern.endsWith("/**")) return file.startsWith(pattern.slice(0, -3));
+  return file === pattern;
 }
 
 async function runCommand(command, args) {
@@ -194,6 +246,19 @@ function checkSecurity() {
     errors.push(`Do not duplicate guardrail check logic in shell scripts: ${file}.`);
   }
 
+  const configFiles = listFiles(".", file => {
+    const normalized = file.replaceAll("\\", "/").toLowerCase();
+    return normalized.endsWith("appsettings.json") ||
+      normalized.endsWith("appsettings.production.json");
+  });
+
+  for (const file of configFiles) {
+    const content = read(file).toLowerCase();
+    if (content.includes("password=postgres") || content.includes("\"password\"")) {
+      errors.push(`Runtime configuration must not contain a default password: ${file}.`);
+    }
+  }
+
   return errors.length ? fail("security", errors) : pass("security");
 }
 
@@ -291,6 +356,34 @@ function checkSpecs() {
   return errors.length ? fail("specs", errors) : pass("specs");
 }
 
+function checkModuleManifests() {
+  const errors = [];
+  const manifests = listFiles(".", file => file.replaceAll("\\", "/").endsWith("/module.json"));
+
+  if (manifests.length === 0) {
+    errors.push("No generated module.json manifests found under src/.");
+  }
+
+  for (const file of manifests) {
+    try {
+      const manifest = JSON.parse(read(file));
+      for (const property of ["name", "schema", "type", "owner", "dependencies", "publicContracts", "features", "rules"]) {
+        if (!(property in manifest)) errors.push(`${file} missing ${property}.`);
+      }
+      if (manifest.rules?.allowCrossModuleDatabaseAccess !== false) {
+        errors.push(`${file} must set rules.allowCrossModuleDatabaseAccess to false.`);
+      }
+      if (manifest.rules?.allowInfrastructureReferences !== false) {
+        errors.push(`${file} must set rules.allowInfrastructureReferences to false.`);
+      }
+    } catch (error) {
+      errors.push(`${file} is not valid JSON: ${error.message}`);
+    }
+  }
+
+  return errors.length ? fail("module manifests", errors) : pass("module manifests");
+}
+
 function checkStrict() {
   const errors = [];
 
@@ -305,9 +398,37 @@ function checkStrict() {
     assertExists(errors, ".ai/guardrails/strict-rules.md", "guardrails=strict with ai=enterprise must include strict rules.");
     assertContains(errors, ".ai/guardrails/strict-rules.md", "sensitive files", "strict rules must explain sensitive-file checks.");
     assertContains(errors, "AGENTS.md", "specs/", "strict enterprise AGENTS.md must mention specs/.");
-    assertExists(errors, ".ai/policies/forbidden-actions.yaml", "strict enterprise output must include forbidden action policy.");
   } else {
     assertMissing(errors, ".ai", "Non-enterprise strict guardrails should not generate enterprise .ai assets.");
+  }
+
+  const forbiddenEntries = readForbiddenActions(errors);
+  const sourceFiles = listFiles(".", file => {
+    const normalized = file.replaceAll("\\", "/");
+    return !normalized.endsWith("/.ai/policies/forbidden-actions.yaml") &&
+      !normalized.endsWith("/tools/guardrails/check.mjs");
+  });
+
+  for (const entry of forbiddenEntries) {
+    if (entry.pattern) {
+      for (const file of sourceFiles) {
+        if (read(file).includes(entry.pattern)) {
+          errors.push(`Forbidden content pattern ${entry.pattern} detected in ${file}.`);
+        }
+      }
+    }
+
+    if (entry.path && (entry.block === true || (entry.requiresApproval === true && entry.builtIn === true))) {
+      for (const file of sourceFiles) {
+        if (matchesForbiddenPath(entry.path, file)) {
+          if (entry.block === true) {
+            errors.push(`Blocked forbidden path detected: ${file}.`);
+          } else {
+            errors.push(`Approval-required forbidden path detected: ${file}.`);
+          }
+        }
+      }
+    }
   }
 
   return errors.length ? fail("strict guardrails", errors) : pass("strict guardrails");
@@ -336,8 +457,10 @@ const groups = {
   specs: [checkSpecs],
   skills: [checkSkills],
   workflows: [checkWorkflows],
+  manifest: [checkModuleManifests],
+  manifests: [checkModuleManifests],
   "template-smoke": [checkTemplateSmoke],
-  all: [checkAi, checkDocs, checkSecurity, checkSkills, checkWorkflows, checkSpecs, checkStrict]
+  all: [checkAi, checkDocs, checkSecurity, checkSkills, checkWorkflows, checkSpecs, checkStrict, checkModuleManifests]
 };
 
 const selected = groups[target];

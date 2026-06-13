@@ -1,17 +1,39 @@
-# Risk Levels
+# AI Agent Risk Levels
 
-## Low
+## Low risk
 
-Docs, tests, and private refactors. Agents may proceed and validate.
+- Add or improve documentation.
+- Add a unit test.
+- Refactor private code without behavior change.
 
-## Medium
+Agent may proceed and validate.
 
-Internal behavior, module slices, and integration tests. Agents may proceed with relevant checks.
+## Medium risk
 
-## High
+- Add command/query slice.
+- Add integration test.
+- Modify internal API behavior.
 
-Dependencies, public API contracts, module boundaries, migrations, workers, and external integrations. Human review is required before merge.
+Agent may implement, must run relevant checks, and must summarize risk.
 
-## Critical
+## High risk
 
-Authentication, authorization, secrets, release, publishing, license changes, destructive actions, and CI bypass. Explicit human approval is required.
+- Add production dependency.
+- Add EF Core migration.
+- Modify public API contract.
+- Modify module boundaries.
+- Add background worker.
+- Add external service integration.
+
+Human review is required before merge.
+
+## Critical risk
+
+- Modify authentication or authorization.
+- Handle secrets or encryption.
+- Change CI/release pipeline.
+- Publish NuGet package or container image.
+- Delete data.
+- Change license.
+
+Explicit human approval is required before action or merge.

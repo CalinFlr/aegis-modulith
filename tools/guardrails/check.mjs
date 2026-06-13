@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { extname, join, relative } from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
@@ -28,8 +28,10 @@ function listFiles(dir, predicate = () => true) {
   const abs = join(root, dir);
   if (!existsSync(abs)) return [];
   const out = [];
+  const ignoredDirectories = new Set([".git", "artifacts", "bin", "node_modules", "obj"]);
   function walk(current) {
     for (const entry of readdirSync(current)) {
+      if (ignoredDirectories.has(entry)) continue;
       const full = join(current, entry);
       const st = statSync(full);
       if (st.isDirectory()) walk(full);
@@ -413,11 +415,14 @@ function assertGuardrailSemantics(errors, output, variant) {
   const runner = join(output, "tools", "guardrails", "check.mjs");
   const packageJson = join(output, "package.json");
   const ci = join(output, ".github", "workflows", "ci.yml");
+  const readme = join(output, "README.md");
 
   if (variant.guardrails === "off") {
     assertMissing(errors, runner, `${variant.id} guardrails=off should not include the Node guardrail runner.`);
     assertMissing(errors, packageJson, `${variant.id} guardrails=off should not include guardrail package scripts.`);
     assertNotContains(errors, ci, "npm run check", `${variant.id} guardrails=off CI should not run guardrails.`);
+    assertNotContains(errors, readme, "npm run check", `${variant.id} guardrails=off README should not tell users to run npm guardrails.`);
+    assertNotContains(errors, join(output, ".ai", "workflows", "pre-pr-review.md"), "npm run check", `${variant.id} guardrails=off pre-PR workflow should not require npm guardrails.`);
   } else {
     assertExists(errors, runner, `${variant.id} guardrails=${variant.guardrails} should include the Node guardrail runner.`);
     assertExists(errors, packageJson, `${variant.id} guardrails=${variant.guardrails} should include package.json.`);
@@ -425,6 +430,12 @@ function assertGuardrailSemantics(errors, output, variant) {
       assertContains(errors, packageJson, script, `${variant.id} package.json should include ${script}.`);
     }
     assertContains(errors, ci, "npm run check", `${variant.id} CI should run generated guardrails.`);
+    assertContains(errors, runner, "\"node_modules\"", `${variant.id} generated guardrails should ignore node_modules.`);
+    assertContains(errors, runner, "\".git\"", `${variant.id} generated guardrails should ignore .git.`);
+    assertContains(errors, runner, "\"bin\"", `${variant.id} generated guardrails should ignore bin.`);
+    assertContains(errors, runner, "\"obj\"", `${variant.id} generated guardrails should ignore obj.`);
+    assertContains(errors, runner, "appsettings.production.json", `${variant.id} generated security guardrails should scan appsettings files.`);
+    assertContains(errors, runner, "password=postgres", `${variant.id} generated security guardrails should detect default PostgreSQL passwords.`);
   }
 
   if (variant.guardrails === "strict" && variant.ai === "enterprise") {
@@ -433,6 +444,12 @@ function assertGuardrailSemantics(errors, output, variant) {
   } else {
     assertMissing(errors, join(output, ".ai", "policies", "strict-mode.md"), `${variant.id} should not include strict policy outside strict enterprise output.`);
     assertMissing(errors, join(output, ".ai", "guardrails", "strict-rules.md"), `${variant.id} should not include strict rules outside strict enterprise output.`);
+  }
+
+  if (variant.guardrails === "strict") {
+    assertContains(errors, runner, "readForbiddenActions", `${variant.id} strict guardrails should parse or load forbidden actions.`);
+    assertContains(errors, runner, "Blocked forbidden path detected", `${variant.id} strict guardrails should enforce blocked forbidden paths.`);
+    assertContains(errors, runner, "Approval-required forbidden path detected", `${variant.id} strict guardrails should fail approval-required forbidden paths in CI.`);
   }
 }
 
@@ -475,12 +492,23 @@ function assertSkillSemantics(errors, output, variant) {
 
   if (variant.ai !== "enterprise" || variant.skills === "none") {
     assertMissing(errors, join(output, ".agents", "skills"), `${variant.id} should not include .agents/skills.`);
+    assertNotContains(errors, join(output, "README.md"), "Skills:", `${variant.id} README should not report generated skills when skills are not emitted.`);
+    assertNotContains(errors, join(output, ".ai", "README.md"), ".agents/skills", `${variant.id} AI README should not describe removed skills.`);
     return;
   }
 
   const expected = variant.skills === "core" ? coreSkills : enterpriseSkills;
   for (const skill of expected) {
-    assertExists(errors, join(output, ".agents", "skills", skill, "SKILL.md"), `${variant.id} skills=${variant.skills} missing ${skill}.`);
+    const skillFile = join(output, ".agents", "skills", skill, "SKILL.md");
+    assertExists(errors, skillFile, `${variant.id} skills=${variant.skills} missing ${skill}.`);
+
+    if (existsSync(skillFile)) {
+      const content = readAbsolute(skillFile);
+      const referencedDocs = [...content.matchAll(/`(docs\/[^`]+\.md)`/g)].map(match => match[1]);
+      for (const doc of referencedDocs) {
+        assertExists(errors, join(output, doc), `${variant.id} ${skill} references missing ${doc}.`);
+      }
+    }
   }
 
   if (variant.skills === "core") {
@@ -589,11 +617,17 @@ function assertNoTemplateDirectives(errors, output, label) {
     ".yaml"
   ];
   const directivePattern = /^\s*(?:(?:\/\/|<!--)\s*)?#(?:if|else|elseif|elif|endif)\b/m;
+  const csharpTemplateDirectivePattern = /^\s*#(?:if|elseif|elif)\s*\(/m;
   const files = listFilesAbsolute(output, file => checkedExtensions.some(ext => file.endsWith(ext)));
 
   for (const file of files) {
     const content = readAbsolute(file);
-    if (directivePattern.test(content)) {
+    const hasTemplateDirective =
+      extname(file) === ".cs"
+        ? csharpTemplateDirectivePattern.test(content)
+        : directivePattern.test(content);
+
+    if (hasTemplateDirective) {
       errors.push(`${label} contains an unresolved template conditional directive in ${file}.`);
     }
   }
@@ -658,6 +692,7 @@ function assertArchitectureTestSemantics(errors, output, variant) {
   assertContains(errors, manifestTests, "allowCrossModuleDatabaseAccess", `${variant.id} architecture tests should assert manifest database boundary rules.`);
   assertContains(errors, manifestTests, "allowInfrastructureReferences", `${variant.id} architecture tests should assert manifest infrastructure-reference rules.`);
   assertContains(errors, manifestTests, "Public_contracts_listed_in_manifests_exist_under_contracts_folder", `${variant.id} architecture tests should assert manifest public contracts exist.`);
+  assertContains(errors, manifestTests, "SearchOption.AllDirectories", `${variant.id} architecture tests should find public contracts recursively under Contracts.`);
 
   const boundaryTests = join(architectureRoot, "ModuleBoundaryTests.cs");
   assertContains(errors, boundaryTests, "Project_references_do_not_point_to_infrastructure_projects", `${variant.id} architecture tests should inspect project references for Infrastructure boundaries.`);
@@ -666,6 +701,11 @@ function assertArchitectureTestSemantics(errors, output, variant) {
   const cqrsTests = join(architectureRoot, "CqrsArchitectureTests.cs");
   assertContains(errors, cqrsTests, "Commands_and_queries_follow_generated_abstractions", `${variant.id} architecture tests should assert CQRS request abstractions.`);
   assertContains(errors, cqrsTests, "Query_handlers_do_not_mutate_state_and_use_no_tracking_for_ef_queries", `${variant.id} architecture tests should assert query non-mutation and no-tracking EF queries.`);
+  assertContains(errors, cqrsTests, "ExecuteUpdateAsync", `${variant.id} architecture tests should block EF bulk mutations from query handlers.`);
+  assertContains(errors, cqrsTests, "AssertResponseTypeDoesNotExposeDomainOrInfrastructure", `${variant.id} architecture tests should prevent CQRS responses from exposing domain or infrastructure types.`);
+  assertContains(errors, cqrsTests, "PublicMemberTypes", `${variant.id} architecture tests should inspect response DTO member types.`);
+  assertContains(errors, cqrsTests, "AsNoTrackingWithIdentityResolution", `${variant.id} architecture tests should accept equivalent EF no-tracking APIs.`);
+  assertContains(errors, cqrsTests, "IsCqrsHandlerSource", `${variant.id} architecture tests should restrict handler placement checks to CQRS handlers.`);
   assertContains(errors, cqrsTests, "MediatR.IRequest", `${variant.id} architecture tests should keep MediatR compatibility covered.`);
 
   const profileTests = join(architectureRoot, "ProfileOptionWiringTests.cs");
@@ -678,14 +718,18 @@ function assertArchitectureTestSemantics(errors, output, variant) {
 
   const domainTests = join(architectureRoot, "DomainIsolationTests.cs");
   assertContains(errors, domainTests, "Domain_source_files_do_not_depend_on_web_or_persistence_infrastructure", `${variant.id} architecture tests should assert domain isolation.`);
+  assertContains(errors, domainTests, "DomainModelSourceFiles", `${variant.id} architecture tests should include domain events in domain isolation checks.`);
   assertContains(errors, domainTests, "Domain_events_are_module_owned_and_follow_the_domain_event_abstraction", `${variant.id} architecture tests should assert domain event abstraction.`);
 
   const endpointTests = join(architectureRoot, "ApiEndpointTests.cs");
   assertContains(errors, endpointTests, "Module_endpoint_mappings_do_not_perform_persistence_directly", `${variant.id} architecture tests should assert endpoints do not persist directly.`);
+  assertContains(errors, endpointTests, "ModuleDbContextTypeNames", `${variant.id} architecture tests should reject direct module DbContext usage in endpoints.`);
+  assertContains(errors, endpointTests, "*Endpoint.cs", `${variant.id} architecture tests should scan feature endpoint helper files.`);
 
   const persistenceTests = join(architectureRoot, "PersistenceArchitectureTests.cs");
   assertContains(errors, persistenceTests, "Each_module_has_one_module_scoped_dbcontext", `${variant.id} architecture tests should assert module-scoped DbContexts.`);
-  assertContains(errors, persistenceTests, "Generated_dbcontexts_do_not_configure_foreign_keys_by_default", `${variant.id} architecture tests should assert no generated FK configuration by default.`);
+  assertContains(errors, persistenceTests, "Generated_sources_do_not_configure_cross_module_foreign_keys", `${variant.id} architecture tests should assert no cross-module FK configuration by default.`);
+  assertContains(errors, persistenceTests, "relationshipMarkers", `${variant.id} architecture tests should distinguish relationship mapping from cross-module references.`);
 }
 
 function assertItemModuleSemantics(errors, moduleRoot, variant) {
@@ -719,10 +763,14 @@ function assertItemModuleSemantics(errors, moduleRoot, variant) {
   assertContains(errors, moduleClass, "class BillingModule : IAegisModule", `${variant.id} module class should implement IAegisModule.`);
   assertContains(errors, moduleClass, "services.AddBillingInfrastructure(configuration);", `${variant.id} module class should call module service registration.`);
   assertContains(errors, moduleClass, "endpoints.MapGroup(\"/billing\")", `${variant.id} module class should map a module route group from schema.`);
+  assertContains(errors, moduleClass, "MapFeatureEndpoints(group)", `${variant.id} module class should map generated feature endpoints.`);
+  assertContains(errors, moduleClass, "BindingFlags.Public | BindingFlags.Static", `${variant.id} module class should discover generated slice endpoint methods.`);
   assertContains(errors, dbContext, ": DbContext", `${variant.id} module DbContext should derive from DbContext.`);
   assertContains(errors, dbContext, "DbSet<BillingEntity>", `${variant.id} module DbContext should expose a module DbSet.`);
   assertContains(errors, dbContext, "modelBuilder.HasDefaultSchema(Schema)", `${variant.id} module DbContext should set the module schema.`);
   assertContains(errors, serviceRegistration, "UseNpgsql", `${variant.id} module service registration should configure PostgreSQL.`);
+  assertContains(errors, serviceRegistration, "Connection string 'Postgres' is required", `${variant.id} module service registration should fail fast without Postgres configuration.`);
+  assertNotContains(errors, serviceRegistration, "Password=postgres", `${variant.id} module service registration should not include a default database password.`);
 
   try {
     const manifest = JSON.parse(readAbsolute(manifestPath));
@@ -760,6 +808,7 @@ function assertItemSliceSemantics(errors, moduleRoot, variant) {
   assertContains(errors, command, "ICommand<CreateInvoiceResponse>", `${variant.id} command slice should implement ICommand<TResponse>.`);
   assertContains(errors, commandHandler, "ICommandHandler<CreateInvoiceCommand, CreateInvoiceResponse>", `${variant.id} command handler should implement generated command handler contract.`);
   assertContains(errors, commandEndpoint, "ICommandDispatcher", `${variant.id} command endpoint should dispatch through ICommandDispatcher.`);
+  assertContains(errors, commandEndpoint, "RouteGroupBuilder MapCreateInvoice", `${variant.id} command endpoint should expose a discoverable route group mapper.`);
   assertContains(errors, commandValidator, "IValidator<CreateInvoiceCommand>", `${variant.id} command slice should include validation convention.`);
   assertContains(errors, commandHandler, "handler tests", `${variant.id} command slice should document the test next step.`);
 
@@ -769,6 +818,7 @@ function assertItemSliceSemantics(errors, moduleRoot, variant) {
   assertContains(errors, query, "PageSize", `${variant.id} list query should include PageSize.`);
   assertContains(errors, queryHandler, "IQueryHandler<ListInvoicesQuery, ListInvoicesResponse>", `${variant.id} query handler should implement generated query handler contract.`);
   assertContains(errors, queryEndpoint, "IQueryDispatcher", `${variant.id} query endpoint should dispatch through IQueryDispatcher.`);
+  assertContains(errors, queryEndpoint, "RouteGroupBuilder MapListInvoices", `${variant.id} query endpoint should expose a discoverable route group mapper.`);
   assertContains(errors, queryEndpoint, "[AsParameters] ListInvoicesQuery query", `${variant.id} list query endpoint should bind pagination shape.`);
   assertContains(errors, queryResponse, "IReadOnlyList<ListInvoicesItemResponse>", `${variant.id} list query response should include paged item shape.`);
   assertContains(errors, queryHandler, "handler tests", `${variant.id} query slice should document the test next step.`);
@@ -806,11 +856,16 @@ function assertItemEventSemantics(errors, moduleRoot, variant) {
 
 function assertItemWorkerSemantics(errors, workerRoot) {
   const worker = join(workerRoot, "BillingOutboxDispatcher.cs");
+  const workerProject = join(workerRoot, "BillingOutboxDispatcher.csproj");
   const services = join(workerRoot, "BillingOutboxDispatcherServiceCollectionExtensions.cs");
   const program = join(workerRoot, "Program.cs");
+  const packageProps = join(workerRoot, "Directory.Packages.props");
 
   assertExists(errors, worker, "worker item should generate a worker class named after the item.");
+  assertExists(errors, workerProject, "worker item should generate a worker project.");
   assertExists(errors, services, "worker item should generate a DI registration extension.");
+  assertMissing(errors, packageProps, "worker item should not emit Directory.Packages.props into the output folder.");
+  assertContains(errors, workerProject, `PackageReference Include="Microsoft.Extensions.Hosting"`, "worker project should use the generated app central package version.");
   assertContains(errors, worker, "class BillingOutboxDispatcher", "worker item should name the BackgroundService after the requested worker.");
   assertContains(errors, worker, ": BackgroundService", "worker item should derive from BackgroundService.");
   assertContains(errors, worker, "ILogger<BillingOutboxDispatcher>", "worker item should use logging.");
@@ -1103,8 +1158,10 @@ async function checkTemplateSmoke() {
     { id: "strict-enterprise", name: "Smoke.StrictEnterprise", profile: "advanced", mediator: "core", sample: "none", ai: "enterprise", guardrails: "strict", hooks: "lefthook", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "advanced", "--ai", "enterprise", "--guardrails", "strict", "--hooks", "lefthook"] },
     { id: "ai-none", name: "Smoke.AiNone", profile: "core", mediator: "core", sample: "none", ai: "none", guardrails: "standard", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "none", "--guardrails", "standard", "--docs", "full"] },
     { id: "ai-agents", name: "Smoke.AiAgents", profile: "core", mediator: "core", sample: "none", ai: "agents", guardrails: "standard", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "agents", "--guardrails", "standard", "--docs", "full"] },
+    { id: "strict-ai-agents", name: "Smoke.StrictAiAgents", profile: "core", mediator: "core", sample: "none", ai: "agents", guardrails: "strict", hooks: "none", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "agents", "--guardrails", "strict", "--docs", "full"] },
     { id: "guardrails-off-lefthook", name: "Smoke.GuardrailsOff", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "off", hooks: "lefthook", skills: "enterprise", docs: "full", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "enterprise", "--guardrails", "off", "--hooks", "lefthook"] },
     { id: "skills-none-docs-standard", name: "Smoke.SkillsNoneDocsStandard", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "none", docs: "standard", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "enterprise", "--skills", "none", "--docs", "standard", "--guardrails", "standard"] },
+    { id: "skills-core-docs-standard", name: "Smoke.SkillsCoreDocsStandard", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "core", docs: "standard", license: "apache2", licenseExpression: "Apache-2.0", args: ["--profile", "core", "--ai", "enterprise", "--skills", "core", "--docs", "standard", "--guardrails", "standard"] },
     { id: "skills-core-license-mit", name: "Smoke.SkillsCoreLicenseMit", profile: "core", mediator: "core", sample: "none", ai: "enterprise", guardrails: "standard", hooks: "none", skills: "core", docs: "full", license: "mit", licenseExpression: "MIT", args: ["--profile", "core", "--ai", "enterprise", "--skills", "core", "--license", "mit", "--guardrails", "standard"] }
   ];
 
@@ -1117,7 +1174,8 @@ async function checkTemplateSmoke() {
       variant.name,
       ...variant.args,
       "-o",
-      output
+      output,
+      "--force"
     ], { env: smokeEnv });
     if (code !== 0) {
       return fail("template smoke", [`Generation failed for ${variant.id}.`]);
@@ -1186,7 +1244,7 @@ async function checkTemplateSmoke() {
     }
   }
 
-  const itemCompatibilityIds = new Set(["core-core", "pro-core", "advanced-core", "pro-mediatr", "advanced-mediatr"]);
+  const itemCompatibilityIds = new Set(["core-core", "core-mediatr", "pro-core", "advanced-core", "pro-mediatr", "advanced-mediatr"]);
   const itemCompatibilityVariants = matrix.filter(variant => itemCompatibilityIds.has(variant.id));
 
   for (const variant of itemCompatibilityVariants) {
@@ -1294,6 +1352,11 @@ async function checkTemplateSmoke() {
       return fail("template smoke", [`generated solution build failed after item templates for ${variant.id}.`]);
     }
 
+    code = await runCommand("dotnet", ["test", join(output, `${variant.name}.sln`), "-c", "Release", "--no-build"], { env: smokeEnv });
+    if (code !== 0) {
+      return fail("template smoke", [`generated architecture tests failed after item templates for ${variant.id}.`]);
+    }
+
     assertItemModuleSemantics(errors, moduleRoot, variant);
     assertItemSliceSemantics(errors, moduleRoot, variant);
     assertItemEventSemantics(errors, moduleRoot, variant);
@@ -1301,17 +1364,16 @@ async function checkTemplateSmoke() {
     assertNoTemplateDirectives(errors, moduleRoot, `${variant.id} item template output`);
   }
 
-  const workerRoot = join(itemRoot, "worker");
+  const workerAppRoot = join(generatedRoot, "core-core");
+  const workerRoot = join(workerAppRoot, "BillingOutboxDispatcher");
   code = await runCommand("dotnet", [
     "new",
     "aegis-worker",
     "-n",
     "BillingOutboxDispatcher",
     "--module",
-    "Billing",
-    "-o",
-    workerRoot
-  ], { env: smokeEnv });
+    "Billing"
+  ], { cwd: workerAppRoot, env: smokeEnv });
   if (code !== 0) {
     return fail("template smoke", ["aegis-worker generation failed."]);
   }
