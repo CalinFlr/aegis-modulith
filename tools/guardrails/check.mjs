@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { extname, join, relative } from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
@@ -526,11 +526,17 @@ function assertNoTemplateDirectives(errors, output, label) {
     ".yaml"
   ];
   const directivePattern = /^\s*(?:(?:\/\/|<!--)\s*)?#(?:if|else|elseif|elif|endif)\b/m;
+  const csharpTemplateDirectivePattern = /^\s*#(?:if|elseif|elif)\s*\(/m;
   const files = listFilesAbsolute(output, file => checkedExtensions.some(ext => file.endsWith(ext)));
 
   for (const file of files) {
     const content = readAbsolute(file);
-    if (directivePattern.test(content)) {
+    const hasTemplateDirective =
+      extname(file) === ".cs"
+        ? csharpTemplateDirectivePattern.test(content)
+        : directivePattern.test(content);
+
+    if (hasTemplateDirective) {
       errors.push(`${label} contains an unresolved template conditional directive in ${file}.`);
     }
   }
