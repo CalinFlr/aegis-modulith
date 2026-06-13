@@ -430,6 +430,105 @@ function assertNoTemplateTokens(errors, output, label) {
   }
 }
 
+function assertArchitectureTestSemantics(errors, output, variant) {
+  const architectureRoot = join(output, "tests", `${variant.name}.ArchitectureTests`);
+  const architectureProject = join(architectureRoot, `${variant.name}.ArchitectureTests.csproj`);
+  const solution = join(output, `${variant.name}.sln`);
+  const expectedFiles = [
+    "ArchitectureTestContext.cs",
+    "ModuleBoundaryTests.cs",
+    "ModuleManifestTests.cs",
+    "DomainIsolationTests.cs",
+    "CqrsArchitectureTests.cs",
+    "ApiEndpointTests.cs",
+    "PersistenceArchitectureTests.cs",
+    "ProfileOptionWiringTests.cs"
+  ];
+
+  assertExists(errors, architectureProject, `${variant.id} should include generated architecture test project.`);
+  assertContains(errors, solution, `${variant.name}.ArchitectureTests`, `${variant.id} solution should include architecture tests so dotnet test runs them.`);
+  if (existsSync(architectureProject)) {
+    const architectureProjectContent = readAbsolute(architectureProject).replaceAll("\\", "/");
+    if (!architectureProjectContent.includes(`${variant.name}.BuildingBlocks/${variant.name}.BuildingBlocks.csproj`)) {
+      errors.push(`${variant.id} architecture tests should reference BuildingBlocks.`);
+    }
+    if (!architectureProjectContent.includes(`${variant.name}.Modules/${variant.name}.Modules.csproj`)) {
+      errors.push(`${variant.id} architecture tests should reference Modules.`);
+    }
+  }
+
+  for (const file of expectedFiles) {
+    assertExists(errors, join(architectureRoot, file), `${variant.id} architecture test suite missing ${file}.`);
+  }
+
+  const architectureFiles = listFilesAbsolute(architectureRoot, file => file.endsWith(".cs") || file.endsWith(".csproj"));
+  const forbiddenTokens = [
+    "Aegis.Template",
+    "AegisProfileValue",
+    "AegisMediatorValue",
+    "AegisSampleValue",
+    "AegisDatabaseValue",
+    "AegisAiValue",
+    "AegisGuardrailsValue",
+    "AegisHooksValue",
+    "AegisSkillsValue",
+    "AegisDocsValue",
+    "AegisLicenseValue",
+    "AegisLicenseExpressionValue"
+  ];
+  for (const file of architectureFiles) {
+    const content = readAbsolute(file);
+    for (const token of forbiddenTokens) {
+      if (content.includes(token)) {
+        errors.push(`${variant.id} architecture tests contain unresolved template token ${token} in ${file}.`);
+      }
+    }
+  }
+
+  const manifestTests = join(architectureRoot, "ModuleManifestTests.cs");
+  assertContains(errors, manifestTests, "allowCrossModuleDatabaseAccess", `${variant.id} architecture tests should assert manifest database boundary rules.`);
+  assertContains(errors, manifestTests, "allowInfrastructureReferences", `${variant.id} architecture tests should assert manifest infrastructure-reference rules.`);
+  assertContains(errors, manifestTests, "Public_contracts_listed_in_manifests_exist_under_contracts_folder", `${variant.id} architecture tests should assert manifest public contracts exist.`);
+  assertContains(errors, manifestTests, "SearchOption.AllDirectories", `${variant.id} architecture tests should find public contracts recursively under Contracts.`);
+
+  const boundaryTests = join(architectureRoot, "ModuleBoundaryTests.cs");
+  assertContains(errors, boundaryTests, "Project_references_do_not_point_to_infrastructure_projects", `${variant.id} architecture tests should inspect project references for Infrastructure boundaries.`);
+  assertContains(errors, boundaryTests, "Cross_module_contract_references_are_declared_in_module_manifests", `${variant.id} architecture tests should enforce manifest-declared cross-module contracts.`);
+
+  const cqrsTests = join(architectureRoot, "CqrsArchitectureTests.cs");
+  assertContains(errors, cqrsTests, "Commands_and_queries_follow_generated_abstractions", `${variant.id} architecture tests should assert CQRS request abstractions.`);
+  assertContains(errors, cqrsTests, "Query_handlers_do_not_mutate_state_and_use_no_tracking_for_ef_queries", `${variant.id} architecture tests should assert query non-mutation and no-tracking EF queries.`);
+  assertContains(errors, cqrsTests, "ExecuteUpdateAsync", `${variant.id} architecture tests should block EF bulk mutations from query handlers.`);
+  assertContains(errors, cqrsTests, "AssertResponseTypeDoesNotExposeDomainOrInfrastructure", `${variant.id} architecture tests should prevent CQRS responses from exposing domain or infrastructure types.`);
+  assertContains(errors, cqrsTests, "PublicMemberTypes", `${variant.id} architecture tests should inspect response DTO member types.`);
+  assertContains(errors, cqrsTests, "AsNoTrackingWithIdentityResolution", `${variant.id} architecture tests should accept equivalent EF no-tracking APIs.`);
+  assertContains(errors, cqrsTests, "IsCqrsHandlerSource", `${variant.id} architecture tests should restrict handler placement checks to CQRS handlers.`);
+  assertContains(errors, cqrsTests, "MediatR.IRequest", `${variant.id} architecture tests should keep MediatR compatibility covered.`);
+
+  const profileTests = join(architectureRoot, "ProfileOptionWiringTests.cs");
+  assertContains(errors, profileTests, "AegisProfile", `${variant.id} architecture tests should read selected profile metadata.`);
+  assertContains(errors, profileTests, "AegisMediator", `${variant.id} architecture tests should read selected mediator metadata.`);
+  assertContains(errors, profileTests, "AddProProfileServices", `${variant.id} architecture tests should assert pro profile wiring.`);
+  assertContains(errors, profileTests, "AddAdvancedProfileServices", `${variant.id} architecture tests should assert advanced profile wiring.`);
+  assertContains(errors, profileTests, "services.AddMediatR", `${variant.id} architecture tests should assert MediatR wiring.`);
+  assertContains(errors, profileTests, "ServiceProviderCommandDispatcher", `${variant.id} architecture tests should assert core dispatcher wiring.`);
+
+  const domainTests = join(architectureRoot, "DomainIsolationTests.cs");
+  assertContains(errors, domainTests, "Domain_source_files_do_not_depend_on_web_or_persistence_infrastructure", `${variant.id} architecture tests should assert domain isolation.`);
+  assertContains(errors, domainTests, "DomainModelSourceFiles", `${variant.id} architecture tests should include domain events in domain isolation checks.`);
+  assertContains(errors, domainTests, "Domain_events_are_module_owned_and_follow_the_domain_event_abstraction", `${variant.id} architecture tests should assert domain event abstraction.`);
+
+  const endpointTests = join(architectureRoot, "ApiEndpointTests.cs");
+  assertContains(errors, endpointTests, "Module_endpoint_mappings_do_not_perform_persistence_directly", `${variant.id} architecture tests should assert endpoints do not persist directly.`);
+  assertContains(errors, endpointTests, "ModuleDbContextTypeNames", `${variant.id} architecture tests should reject direct module DbContext usage in endpoints.`);
+  assertContains(errors, endpointTests, "*Endpoint.cs", `${variant.id} architecture tests should scan feature endpoint helper files.`);
+
+  const persistenceTests = join(architectureRoot, "PersistenceArchitectureTests.cs");
+  assertContains(errors, persistenceTests, "Each_module_has_one_module_scoped_dbcontext", `${variant.id} architecture tests should assert module-scoped DbContexts.`);
+  assertContains(errors, persistenceTests, "Generated_sources_do_not_configure_cross_module_foreign_keys", `${variant.id} architecture tests should assert no cross-module FK configuration by default.`);
+  assertContains(errors, persistenceTests, "relationshipMarkers", `${variant.id} architecture tests should distinguish relationship mapping from cross-module references.`);
+}
+
 function assertItemModuleSemantics(errors, moduleRoot, variant) {
   const moduleProject = join(moduleRoot, "Billing.csproj");
   const moduleClass = join(moduleRoot, "BillingModule.cs");
@@ -704,6 +803,7 @@ async function checkDocs() {
   const required = [
     "docs/project-brief.md",
     "docs/architecture.md",
+    "docs/architecture/cqrs-lite.md",
     "docs/cli-template-spec.md",
     "docs/implementation-plan.md",
     "docs/acceptance-criteria.md",
@@ -715,6 +815,7 @@ async function checkDocs() {
     "docs/ai-development/spec-driven-development.md",
     "docs/ai-development/ai-pr-protocol.md",
     "docs/architecture/module-manifest.md",
+    "docs/architecture/vertical-slices.md",
     "docs/adr/0012-use-spec-driven-development.md"
   ];
   const errors = required.filter(f => !existsSync(join(root, f))).map(f => `${f} is missing.`);
@@ -901,6 +1002,7 @@ async function checkTemplateSmoke() {
     assertSkillSemantics(errors, output, variant);
     assertDocsSemantics(errors, output, variant);
     assertLicenseSemantics(errors, output, variant);
+    assertArchitectureTestSemantics(errors, output, variant);
 
     if (variant.id === "taskhub") {
       for (const moduleName of ["Projects", "Tasks", "Notifications", "Audit"]) {
@@ -1041,6 +1143,11 @@ async function checkTemplateSmoke() {
     code = await runCommand("dotnet", ["build", join(output, `${variant.name}.sln`), "-c", "Release", "--no-restore"], { env: smokeEnv });
     if (code !== 0) {
       return fail("template smoke", [`generated solution build failed after item templates for ${variant.id}.`]);
+    }
+
+    code = await runCommand("dotnet", ["test", join(output, `${variant.name}.sln`), "-c", "Release", "--no-build"], { env: smokeEnv });
+    if (code !== 0) {
+      return fail("template smoke", [`generated architecture tests failed after item templates for ${variant.id}.`]);
     }
 
     assertItemModuleSemantics(errors, moduleRoot, variant);
