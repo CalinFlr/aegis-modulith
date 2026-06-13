@@ -34,6 +34,7 @@
             "src/Aegis.Template.AppHost/**",
             "src/Aegis.Template.ServiceDefaults/**",
             "tests/Aegis.Template.ContractTests/**",
+            "tests/Aegis.Template.PerformanceSmokeTests/**",
             "tests/Aegis.Template.IntegrationTests/**"
           ]
         },

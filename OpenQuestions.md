@@ -276,6 +276,21 @@ Use this template:
 - Created: 2026-06-09
 - Resolved: N/A
 
+### Q-20260610-001: Generate diagnostic performance smoke tests for pro and advanced only
+
+- Status: inferred
+- Risk: medium
+- Owner: human
+- Source: P1D-3B implementation
+- Affected areas: templates, generated tests, smoke tests, docs, CI
+- Question: Should generated performance checks be diagnostic smoke tests with loose thresholds, generated only for pro and advanced profiles?
+- Context: P1D-3B requires generated performance smoke tests that are deterministic enough for starter projects while explicitly avoiding a full benchmark suite, load testing, Docker, brokers, external identity providers, external services, or production performance certification.
+- Proposed default: Generate `tests/<App>.PerformanceSmokeTests` for pro and advanced only, run them with default `dotnet test`, use `Stopwatch`, warm-up requests, sample diagnostics, EF InMemory, test-local fake auth, and intentionally loose named thresholds.
+- Impact if different: Core would gain a heavier default test surface, or stricter benchmark-style timing could make generated validation flaky across developer machines and CI agents.
+- Current action: implement default
+- Created: 2026-06-10
+- Resolved: N/A
+
 ## Blockers
 
 No known blockers at pack creation time.

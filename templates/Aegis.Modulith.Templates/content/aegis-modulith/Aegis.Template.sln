@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aegis.Template.IntegrationT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aegis.Template.ContractTests", "tests\Aegis.Template.ContractTests\Aegis.Template.ContractTests.csproj", "{2DA0B32A-9AB6-4DE7-A13A-71F12F354760}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aegis.Template.PerformanceSmokeTests", "tests\Aegis.Template.PerformanceSmokeTests\Aegis.Template.PerformanceSmokeTests.csproj", "{B48E1288-B4C7-4054-9DF8-9177EE2E3FF4}"
+EndProject
 #endif
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aegis.Template.ArchitectureTests", "tests\Aegis.Template.ArchitectureTests\Aegis.Template.ArchitectureTests.csproj", "{F0B6236A-96CF-44D5-95DA-7DC7A6B3CC53}"
 EndProject
@@ -55,6 +57,10 @@ Global
     {2DA0B32A-9AB6-4DE7-A13A-71F12F354760}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {2DA0B32A-9AB6-4DE7-A13A-71F12F354760}.Release|Any CPU.ActiveCfg = Release|Any CPU
     {2DA0B32A-9AB6-4DE7-A13A-71F12F354760}.Release|Any CPU.Build.0 = Release|Any CPU
+    {B48E1288-B4C7-4054-9DF8-9177EE2E3FF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+    {B48E1288-B4C7-4054-9DF8-9177EE2E3FF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+    {B48E1288-B4C7-4054-9DF8-9177EE2E3FF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+    {B48E1288-B4C7-4054-9DF8-9177EE2E3FF4}.Release|Any CPU.Build.0 = Release|Any CPU
 #endif
     {F0B6236A-96CF-44D5-95DA-7DC7A6B3CC53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     {F0B6236A-96CF-44D5-95DA-7DC7A6B3CC53}.Debug|Any CPU.Build.0 = Debug|Any CPU

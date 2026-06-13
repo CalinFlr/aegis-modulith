@@ -140,6 +140,16 @@
 - [x] Core profile excludes the pro/advanced contract test project and documents the exclusion.
 - [x] `npm run template:smoke` asserts P1D-3A generated semantics without requiring Docker, a broker, an external identity provider, or external services.
 
+## P1D-3B generated performance smoke tests
+
+- [x] Generated pro and advanced profiles include `tests/<App>.PerformanceSmokeTests` in the generated solution.
+- [x] Generated performance smoke tests cover API test host startup, `/health`, authenticated protected request paths through test-only fake auth, generated CQRS request paths, and OpenAPI document generation.
+- [x] Generated performance smoke tests use `Stopwatch`, warm-up requests, sample diagnostics, and intentionally loose named thresholds.
+- [x] Generated performance smoke tests use EF InMemory and test-local fake auth so default validation does not require Docker, a broker, an external identity provider, a real JWT issuer, a live database, or external services.
+- [x] Core profile excludes the pro/advanced performance smoke test project and documents the exclusion.
+- [x] Generated architecture tests assert production projects do not reference performance smoke tests.
+- [x] `npm run template:smoke` asserts P1D-3B generated semantics without requiring Docker, a broker, an external identity provider, or external services.
+
 ## CI and guardrails
 
 - [x] `npm run check` passes.
