@@ -106,6 +106,18 @@
 - [x] Core profile excludes P1D-1 Testcontainers, fake-auth, and HttpClient resilience assets.
 - [x] `npm run template:smoke` asserts P1D-1 generated file/package/wiring semantics without requiring Docker.
 
+## P1D-2A auth and permission scaffold
+
+- [x] Generated pro and advanced profiles include JWT bearer package references, typed JWT options, and authentication service registration.
+- [x] Generated pro and advanced `Program.cs` wires `UseAuthentication` before `UseAuthorization`.
+- [x] Missing JWT issuer, audience, or signing key uses reject-all token validation instead of accepting arbitrary tokens.
+- [x] Generated pro and advanced profiles include permission constants, claim-type constants, named policy constants, and policy registration.
+- [x] Generated pro and advanced outputs demonstrate named permission policies on protected endpoints without securing every endpoint.
+- [x] Generated integration tests include permission-aware fake auth helpers and prove allowed and forbidden permission outcomes.
+- [x] Fake auth remains test-only and is not wired into production `Program.cs`.
+- [x] Core profile excludes pro/advanced JWT package references, auth middleware, policy registration, and fake auth; it keeps only documented minimal shared permission constants.
+- [x] `npm run template:smoke` asserts P1D-2A generated semantics without real JWT issuance or an external identity provider.
+
 ## CI and guardrails
 
 - [x] `npm run check` passes.

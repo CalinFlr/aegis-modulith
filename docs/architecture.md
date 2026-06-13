@@ -9,6 +9,7 @@ Focused rule docs:
 - [CQRS-lite](architecture/cqrs-lite.md)
 - [Vertical slices](architecture/vertical-slices.md)
 - [Module manifests](architecture/module-manifest.md)
+- [Authentication and permissions](authentication.md)
 
 ## Modular monolith
 

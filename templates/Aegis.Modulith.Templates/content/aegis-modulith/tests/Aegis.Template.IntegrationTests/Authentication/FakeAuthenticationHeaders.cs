@@ -12,11 +12,13 @@ public static class FakeAuthenticationHeaders
         headers.Remove(FakeAuthenticationDefaults.UserNameHeader);
         headers.Remove(FakeAuthenticationDefaults.RolesHeader);
         headers.Remove(FakeAuthenticationDefaults.ScopesHeader);
+        headers.Remove(FakeAuthenticationDefaults.PermissionsHeader);
 
         headers.TryAddWithoutValidation(FakeAuthenticationDefaults.UserIdHeader, user.UserId);
         headers.TryAddWithoutValidation(FakeAuthenticationDefaults.UserNameHeader, user.UserName);
         headers.TryAddWithoutValidation(FakeAuthenticationDefaults.RolesHeader, string.Join(",", user.Roles));
         headers.TryAddWithoutValidation(FakeAuthenticationDefaults.ScopesHeader, string.Join(",", user.Scopes));
+        headers.TryAddWithoutValidation(FakeAuthenticationDefaults.PermissionsHeader, string.Join(",", user.Permissions));
     }
 
     public static void Apply(IHeaderDictionary headers, TestUser user)
@@ -25,6 +27,7 @@ public static class FakeAuthenticationHeaders
         headers[FakeAuthenticationDefaults.UserNameHeader] = user.UserName;
         headers[FakeAuthenticationDefaults.RolesHeader] = string.Join(",", user.Roles);
         headers[FakeAuthenticationDefaults.ScopesHeader] = string.Join(",", user.Scopes);
+        headers[FakeAuthenticationDefaults.PermissionsHeader] = string.Join(",", user.Permissions);
     }
 
     public static bool TryRead(IHeaderDictionary headers, [NotNullWhen(true)] out TestUser? user)
@@ -39,8 +42,9 @@ public static class FakeAuthenticationHeaders
         var userName = ReadHeader(headers, FakeAuthenticationDefaults.UserNameHeader) ?? userId;
         var roles = ReadCsvHeader(headers, FakeAuthenticationDefaults.RolesHeader);
         var scopes = ReadCsvHeader(headers, FakeAuthenticationDefaults.ScopesHeader);
+        var permissions = ReadCsvHeader(headers, FakeAuthenticationDefaults.PermissionsHeader);
 
-        user = new TestUser(userId, userName, roles, scopes);
+        user = new TestUser(userId, userName, roles, scopes, permissions);
         return true;
     }
 

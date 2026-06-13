@@ -1,3 +1,7 @@
+#if (profile != "core")
+using Aegis.Template.BuildingBlocks.Authorization;
+using Microsoft.AspNetCore.Builder;
+#endif
 using Aegis.Template.BuildingBlocks.Cqrs;
 using Aegis.Template.BuildingBlocks.Modules;
 using Aegis.Template.Modules.Modules.WorkItems.Features.CreateWorkItem;
@@ -33,12 +37,20 @@ public sealed class WorkItemsModule : IAegisModule
         {
             var response = await dispatcher.Send(command, cancellationToken);
             return Results.Created($"/work-items/{response.Id}", response);
-        }).WithName("CreateWorkItem");
+        }).WithName("CreateWorkItem")
+#if (profile != "core")
+            .RequireAuthorization(AegisAuthorizationPolicies.WorkItemsWrite)
+#endif
+            ;
 
         group.MapGet("/{id:guid}", async (Guid id, IQueryDispatcher dispatcher, CancellationToken cancellationToken) =>
         {
             var response = await dispatcher.Send(new GetWorkItemByIdQuery(id), cancellationToken);
             return response is null ? Results.NotFound() : Results.Ok(response);
-        }).WithName("GetWorkItemById");
+        }).WithName("GetWorkItemById")
+#if (profile != "core")
+            .RequireAuthorization(AegisAuthorizationPolicies.WorkItemsRead)
+#endif
+            ;
     }
 }

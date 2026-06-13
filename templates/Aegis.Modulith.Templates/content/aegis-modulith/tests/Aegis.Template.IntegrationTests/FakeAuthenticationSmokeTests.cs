@@ -18,6 +18,7 @@ public sealed class FakeAuthenticationSmokeTests
         Assert.True(client.DefaultRequestHeaders.Contains(FakeAuthenticationDefaults.UserIdHeader));
         Assert.True(client.DefaultRequestHeaders.Contains(FakeAuthenticationDefaults.RolesHeader));
         Assert.True(client.DefaultRequestHeaders.Contains(FakeAuthenticationDefaults.ScopesHeader));
+        Assert.True(client.DefaultRequestHeaders.Contains(FakeAuthenticationDefaults.PermissionsHeader));
 
         using var scope = factory.Services.CreateScope();
         var context = new DefaultHttpContext
@@ -35,6 +36,7 @@ public sealed class FakeAuthenticationSmokeTests
         Assert.Equal("admin-user", result.Principal?.FindFirstValue(ClaimTypes.NameIdentifier));
         Assert.Contains(result.Principal!.Claims, claim => claim is { Type: ClaimTypes.Role, Value: "admin" });
         Assert.Contains(result.Principal.Claims, claim => claim is { Type: FakeAuthenticationDefaults.ScopeClaimType, Value: "work-items:write" });
+        Assert.Contains(result.Principal.Claims, claim => claim is { Type: FakeAuthenticationDefaults.PermissionClaimType, Value: "operations:read" });
     }
 
     [Fact]

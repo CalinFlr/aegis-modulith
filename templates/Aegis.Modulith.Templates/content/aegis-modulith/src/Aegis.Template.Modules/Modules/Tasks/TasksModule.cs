@@ -1,3 +1,7 @@
+#if (profile != "core")
+using Aegis.Template.BuildingBlocks.Authorization;
+using Microsoft.AspNetCore.Builder;
+#endif
 using Aegis.Template.BuildingBlocks.Cqrs;
 using Aegis.Template.BuildingBlocks.Modules;
 using Aegis.Template.Modules.Modules.Tasks.Features.CreateTask;
@@ -33,12 +37,20 @@ public sealed class TasksModule : IAegisModule
         {
             var response = await dispatcher.Send(command, cancellationToken);
             return Results.Created($"/tasks/{response.Id}", response);
-        }).WithName("CreateTask");
+        }).WithName("CreateTask")
+#if (profile != "core")
+            .RequireAuthorization(AegisAuthorizationPolicies.TasksWrite)
+#endif
+            ;
 
         group.MapGet("/", async (IQueryDispatcher dispatcher, CancellationToken cancellationToken) =>
         {
             var response = await dispatcher.Send(new ListTasksQuery(), cancellationToken);
             return Results.Ok(response);
-        }).WithName("ListTasks");
+        }).WithName("ListTasks")
+#if (profile != "core")
+            .RequireAuthorization(AegisAuthorizationPolicies.TasksRead)
+#endif
+            ;
     }
 }

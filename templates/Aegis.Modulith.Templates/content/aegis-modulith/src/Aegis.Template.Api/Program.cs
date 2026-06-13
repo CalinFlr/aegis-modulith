@@ -25,7 +25,7 @@ builder.Services.AddAegisModules(builder.Configuration);
 
 #if (profile != "core")
 builder.AddServiceDefaults();
-builder.Services.AddProProfileServices();
+builder.Services.AddProProfileServices(builder.Configuration);
 #endif
 
 #if (profile == "advanced")
@@ -37,6 +37,8 @@ var app = builder.Build();
 app.UseExceptionHandler();
 #if (profile != "core")
 app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 #endif
 
 app.MapOpenApi();

@@ -13,3 +13,7 @@ Rules:
 - Commands mutate state; queries do not.
 - API responses use DTOs, not EF entities.
 - Event sourcing is not enabled by default.
+
+#if (profile != "core")
+See [Authentication And Permissions](authentication.md) for generated JWT bearer and permission-policy scaffolding.
+#endif

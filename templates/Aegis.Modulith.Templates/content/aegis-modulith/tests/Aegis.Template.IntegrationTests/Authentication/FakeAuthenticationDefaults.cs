@@ -7,5 +7,7 @@ public static class FakeAuthenticationDefaults
     public const string UserNameHeader = "X-Test-User-Name";
     public const string RolesHeader = "X-Test-Roles";
     public const string ScopesHeader = "X-Test-Scopes";
+    public const string PermissionsHeader = "X-Test-Permissions";
+    public const string PermissionClaimType = "permission";
     public const string ScopeClaimType = "scope";
 }

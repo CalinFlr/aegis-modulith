@@ -16,4 +16,10 @@ public static class AuthenticatedClientExtensions
         FakeAuthenticationHeaders.Apply(client.DefaultRequestHeaders, user);
         return client;
     }
+
+    public static HttpClient AuthenticateWithPermissions(this HttpClient client, params string[] permissions)
+    {
+        var user = TestUsers.Reader with { Permissions = permissions, Scopes = permissions };
+        return client.AuthenticateAs(user);
+    }
 }
