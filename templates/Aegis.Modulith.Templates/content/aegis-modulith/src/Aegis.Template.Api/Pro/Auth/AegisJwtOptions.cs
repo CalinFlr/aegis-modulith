@@ -21,5 +21,6 @@ public sealed class AegisJwtOptions
         HasSufficientSigningKey;
 
     public bool HasSufficientSigningKey =>
-        Encoding.UTF8.GetByteCount(SigningKey ?? string.Empty) >= MinimumSigningKeyBytes;
+        !string.IsNullOrWhiteSpace(SigningKey) &&
+        Encoding.UTF8.GetByteCount(SigningKey) >= MinimumSigningKeyBytes;
 }

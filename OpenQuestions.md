@@ -173,7 +173,7 @@ Use this template:
 
 ### Q-20260609-004: Use JWT bearer scaffold with claim-based permissions
 
-- Status: explicit-review-gate
+- Status: open
 - Risk: high
 - Owner: human
 - Source: P1D-2A implementation
