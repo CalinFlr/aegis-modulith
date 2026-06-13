@@ -291,6 +291,21 @@ Use this template:
 - Created: 2026-06-10
 - Resolved: N/A
 
+### Q-20260610-002: Keep deployment skeleton provider-neutral and non-deploying by default
+
+- Status: inferred
+- Risk: medium
+- Owner: human
+- Source: P1D-4 implementation
+- Affected areas: templates, generated Docker assets, generated CI, generated deployment docs, smoke tests
+- Question: Should generated pro and advanced deployment scaffolding stay provider-neutral and avoid deploying by default?
+- Context: P1D-4 requires practical deployment scaffolding without forcing a cloud provider, registry, Kubernetes cluster, Docker daemon, live database, broker, identity provider, or deployment secrets during default validation.
+- Proposed default: Generate container/config examples, local API plus PostgreSQL compose scaffolding, a CI container build job, and a manually gated deployment placeholder that performs no deployment until the user configures registry and provider-specific steps.
+- Impact if different: A cloud-specific deployment path would require provider credentials, secret-store choices, registry naming, broader security review, and provider-specific validation beyond P1D-4.
+- Current action: implement default
+- Created: 2026-06-10
+- Resolved: N/A
+
 ## Blockers
 
 No known blockers at pack creation time.

@@ -100,6 +100,17 @@
 - [x] Generated architecture tests assert production projects do not reference performance smoke tests.
 - [x] Default template smoke asserts P1D-3B semantics without requiring Docker, a broker, an external identity provider, or external services.
 
+## P1D-4 deployment skeleton
+
+- [x] Pro and advanced generated outputs include `Dockerfile`, `.dockerignore`, local/dev `docker-compose.yml`, `.env.example`, and `src/<App>.Api/appsettings.Production.json`.
+- [x] Dockerfile paths match generated project names and publish the generated API project.
+- [x] Deployment configuration examples use placeholders for database, JWT, logging, allowed-hosts, inbox, resilience, and observability settings, with no hardcoded production credentials.
+- [x] Generated CI validates build/test separately from a container build job and a manually gated non-deploying placeholder.
+- [x] Generated deployment docs explain container build/run, local compose, environment variables, secret handling, `/health`, OpenTelemetry exporter wiring, provider-neutral CI placeholders, and intentional exclusions.
+- [x] Core generated output excludes pro/advanced deployment assets by default.
+- [x] Generated architecture tests assert deployment profile behavior, secret/provider-target hygiene, and no production project references to deployment scripts.
+- [x] Default template smoke asserts P1D-4 semantics without requiring Docker, Kubernetes, cloud credentials, registry credentials, live PostgreSQL, external services, or deployment secrets.
+
 ## Documentation
 
 - [x] README includes golden path.

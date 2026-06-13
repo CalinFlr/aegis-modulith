@@ -22,6 +22,7 @@ It now also asserts P1D-2A JWT/auth and permission-policy semantics without issu
 It also asserts P1D-2B inbox semantics without requiring a broker or Docker.
 It also asserts P1D-3A generated API and integration-contract test semantics without requiring Docker, a broker, an external identity provider, or external services.
 It also asserts P1D-3B generated performance smoke test semantics for pro and advanced outputs without requiring Docker, a broker, an external identity provider, a real JWT issuer, or external services.
+It also asserts P1D-4 deployment skeleton semantics for generated pro and advanced outputs without requiring Docker, Kubernetes, cloud credentials, registry credentials, a live database, or deployment secrets.
 
 ## Pro And Advanced Integration Tests
 

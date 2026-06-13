@@ -150,6 +150,18 @@
 - [x] Generated architecture tests assert production projects do not reference performance smoke tests.
 - [x] `npm run template:smoke` asserts P1D-3B generated semantics without requiring Docker, a broker, an external identity provider, or external services.
 
+## P1D-4 deployment skeleton
+
+- [x] Generated pro and advanced profiles include `Dockerfile`, `.dockerignore`, local/dev `docker-compose.yml`, `.env.example`, and `src/<App>.Api/appsettings.Production.json`.
+- [x] Generated Dockerfile restores and publishes the generated API project path, runs the generated API assembly, exposes port `8080`, and uses `/health` for a container healthcheck.
+- [x] Generated deployment configuration examples contain placeholders only for PostgreSQL, JWT issuer/audience/signing key, logging, allowed hosts, inbox processor, resilience, and OpenTelemetry settings.
+- [x] Generated local compose starts only API plus PostgreSQL and requires caller-supplied local secrets instead of hardcoded credentials.
+- [x] Generated CI separates build/test validation from a container build job and a manually gated deployment placeholder that does not deploy by default.
+- [x] Generated docs explain container build/run, environment variables, secret management, health endpoint behavior, observability wiring, provider-neutral CI placeholders, and intentionally excluded production infrastructure.
+- [x] Core profile excludes pro/advanced deployment assets and documents the exclusion.
+- [x] Generated architecture tests assert deployment profile behavior, no hardcoded real secrets/provider targets, and no production project references to deployment scripts.
+- [x] `npm run template:smoke` asserts P1D-4 generated semantics without requiring Docker, Kubernetes, cloud credentials, registry credentials, live PostgreSQL, external services, or deployment secrets.
+
 ## CI and guardrails
 
 - [x] `npm run check` passes.

@@ -10,6 +10,8 @@ dotnet build -c Release
 dotnet test -c Release
 ```
 
+Default template smoke asserts P1D-4 deployment skeleton semantics without requiring Docker, Kubernetes, cloud credentials, registry credentials, a live database, or deployment secrets.
+
 #if (guardrails != "off")
 Generated guardrails can also run:
 

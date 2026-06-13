@@ -729,6 +729,143 @@ function assertP1D3BPerformanceSmokeSemantics(errors, output, variant) {
   assertContains(errors, performanceDocs, "HostStartup", `${variant.id} performance docs should document threshold names.`);
 }
 
+function assertP1D4DeploymentSkeletonSemantics(errors, output, variant) {
+  const dockerfile = join(output, "Dockerfile");
+  const dockerignore = join(output, ".dockerignore");
+  const compose = join(output, "docker-compose.yml");
+  const envExample = join(output, ".env.example");
+  const productionSettings = join(output, "src", `${variant.name}.Api`, "appsettings.Production.json");
+  const deploymentDocs = join(output, "docs", "deployment.md");
+  const operationsDocs = join(output, "docs", "operations.md");
+  const testingDocs = join(output, "docs", "testing.md");
+  const workflow = join(output, ".github", "workflows", "ci.yml");
+  const apiProject = join(output, "src", `${variant.name}.Api`, `${variant.name}.Api.csproj`);
+  const modulesProject = join(output, "src", `${variant.name}.Modules`, `${variant.name}.Modules.csproj`);
+  const buildingBlocksProject = join(output, "src", `${variant.name}.BuildingBlocks`, `${variant.name}.BuildingBlocks.csproj`);
+
+  assertExists(errors, deploymentDocs, `${variant.id} should include generated deployment docs.`);
+
+  if (variant.profile === "core") {
+    assertMissing(errors, dockerfile, `${variant.id} core profile should not include Dockerfile.`);
+    assertMissing(errors, dockerignore, `${variant.id} core profile should not include .dockerignore.`);
+    assertMissing(errors, compose, `${variant.id} core profile should not include docker-compose.yml.`);
+    assertMissing(errors, envExample, `${variant.id} core profile should not include .env.example.`);
+    assertMissing(errors, productionSettings, `${variant.id} core profile should not include appsettings.Production.json.`);
+    assertContains(errors, deploymentDocs, "core profile keeps deployment scaffolding lightweight", `${variant.id} deployment docs should explain core exclusion.`);
+    assertNotContains(errors, workflow, "docker build", `${variant.id} core CI should not include a container build job.`);
+    assertNotContains(errors, workflow, "deployment-placeholder", `${variant.id} core CI should not include deployment placeholder jobs.`);
+    return;
+  }
+
+  for (const [path, description] of [
+    [dockerfile, "Dockerfile"],
+    [dockerignore, ".dockerignore"],
+    [compose, "docker-compose.yml"],
+    [envExample, ".env.example"],
+    [productionSettings, "appsettings.Production.json"]
+  ]) {
+    assertExists(errors, path, `${variant.id} pro/advanced deployment skeleton missing ${description}.`);
+  }
+
+  const normalizedDockerfile = existsSync(dockerfile) ? readAbsolute(dockerfile).replaceAll("\\", "/") : "";
+  if (!normalizedDockerfile.includes(`src/${variant.name}.Api/${variant.name}.Api.csproj`)) {
+    errors.push(`${variant.id} Dockerfile should restore/publish the generated API project path.`);
+  }
+  if (!normalizedDockerfile.includes(`src/${variant.name}.ServiceDefaults/${variant.name}.ServiceDefaults.csproj`)) {
+    errors.push(`${variant.id} Dockerfile should reference the generated ServiceDefaults project path.`);
+  }
+  assertContains(errors, dockerfile, `${variant.name}.Api.dll`, `${variant.id} Dockerfile should run the generated API assembly.`);
+  assertContains(errors, dockerfile, "mcr.microsoft.com/dotnet/sdk:10.0", `${variant.id} Dockerfile should use the .NET SDK build image.`);
+  assertContains(errors, dockerfile, "mcr.microsoft.com/dotnet/aspnet:10.0", `${variant.id} Dockerfile should use the ASP.NET runtime image.`);
+  assertContains(errors, dockerfile, "HEALTHCHECK", `${variant.id} Dockerfile should include a container healthcheck.`);
+  assertContains(errors, dockerfile, "http://localhost:8080/health", `${variant.id} Dockerfile healthcheck should call /health.`);
+
+  assertContains(errors, dockerignore, "**/bin/", `${variant.id} .dockerignore should exclude build outputs.`);
+  assertContains(errors, dockerignore, ".env", `${variant.id} .dockerignore should exclude local env files.`);
+  assertContains(errors, dockerignore, "!.env.example", `${variant.id} .dockerignore should keep the example env file.`);
+  assertContains(errors, dockerignore, "tests/", `${variant.id} .dockerignore should keep runtime image context focused.`);
+
+  for (const marker of [
+    "ASPNETCORE_ENVIRONMENT=Production",
+    "ConnectionStrings__Postgres=",
+    "Authentication__Jwt__Issuer=",
+    "Authentication__Jwt__Audience=",
+    "Authentication__Jwt__SigningKey=",
+    "Logging__LogLevel__Default=Information",
+    "OTEL_SERVICE_NAME=",
+    "OTEL_EXPORTER_OTLP_ENDPOINT=",
+    "Inbox__EnableBackgroundProcessor=false",
+    "Resilience__DefaultTimeoutSeconds=10",
+    "Do not commit real"
+  ]) {
+    assertContains(errors, envExample, marker, `${variant.id} .env.example should contain ${marker}.`);
+  }
+
+  assertContains(errors, productionSettings, `"Postgres": ""`, `${variant.id} production settings should keep database connection as an empty placeholder.`);
+  assertContains(errors, productionSettings, `"SigningKey": ""`, `${variant.id} production settings should keep JWT signing key empty.`);
+  assertContains(errors, productionSettings, `"AllowedHosts": "example.invalid"`, `${variant.id} production settings should use a safe non-wildcard allowed-host placeholder.`);
+  assertNotContains(errors, productionSettings, `"AllowedHosts": ""`, `${variant.id} production settings should not fall back to wildcard host filtering.`);
+  assertNotContains(errors, productionSettings, `"AllowedHosts": "*"`, `${variant.id} production settings should not allow every host in production.`);
+  assertContains(errors, productionSettings, `"EnableBackgroundProcessor": false`, `${variant.id} production settings should keep inbox processor disabled by default.`);
+  assertContains(errors, productionSettings, `"OtlpEndpoint": ""`, `${variant.id} production settings should keep observability exporter empty by default.`);
+
+  assertContains(errors, compose, "postgres:17-alpine", `${variant.id} compose should include only local PostgreSQL.`);
+  assertContains(errors, compose, "Set POSTGRES_PASSWORD", `${variant.id} compose should require a supplied local PostgreSQL password.`);
+  assertContains(errors, compose, "Authentication__Jwt__SigningKey: ${Authentication__Jwt__SigningKey:?Set Authentication__Jwt__SigningKey}", `${variant.id} compose should require the generated JWT signing key env var.`);
+  assertNotContains(errors, compose, "${JWT_", `${variant.id} compose should align interpolation variables with .env.example.`);
+  assertNotContains(errors, compose, "MassTransit", `${variant.id} compose should not include broker infrastructure.`);
+  assertNotContains(errors, compose, "RabbitMQ", `${variant.id} compose should not include RabbitMQ.`);
+  assertNotContains(errors, compose, "Kafka", `${variant.id} compose should not include Kafka.`);
+  assertNotContains(errors, compose, "kubernetes", `${variant.id} compose should not claim Kubernetes deployment.`);
+  assertNotContains(errors, compose, "Password=postgres", `${variant.id} compose should not hardcode the PostgreSQL password in connection strings.`);
+
+  assertContains(errors, deploymentDocs, "not full production infrastructure", `${variant.id} deployment docs should scope the skeleton.`);
+  assertContains(errors, deploymentDocs, "No registry, organization, repository, cloud provider, or deployment target is hardcoded", `${variant.id} deployment docs should be provider-neutral.`);
+  assertContains(errors, deploymentDocs, "docker build -t", `${variant.id} deployment docs should explain container build.`);
+  assertContains(errors, deploymentDocs, "docker run --rm -p 8080:8080", `${variant.id} deployment docs should explain running the image with env vars.`);
+  assertContains(errors, deploymentDocs, "The generated API maps `/health`", `${variant.id} deployment docs should explain health endpoint behavior.`);
+  assertContains(errors, deploymentDocs, "No collector is required by default", `${variant.id} deployment docs should explain observability does not require a backend.`);
+  assertContains(errors, operationsDocs, "Deployment](deployment.md)", `${variant.id} operations docs should link deployment docs.`);
+  assertContains(errors, testingDocs, "P1D-4 deployment skeleton semantics", `${variant.id} testing docs should mention P1D-4 smoke semantics.`);
+
+  assertContains(errors, workflow, "docker build --pull -t aegis-template-api:ci .", `${variant.id} CI should include a container image build job.`);
+  assertContains(errors, workflow, "deployment-placeholder", `${variant.id} CI should include a deployment placeholder job.`);
+  assertContains(errors, workflow, "vars.ENABLE_DEPLOYMENT_PLACEHOLDER == 'true'", `${variant.id} deployment placeholder should be manually gated.`);
+  assertContains(errors, workflow, "Add registry login, image push, and provider-specific deployment steps", `${variant.id} deployment placeholder should not deploy by default.`);
+  for (const forbidden of ["REGISTRY_PASSWORD", "DOCKER_PASSWORD", "AZURE_CREDENTIALS", "AWS_ACCESS_KEY_ID", "GCP_CREDENTIALS"]) {
+    assertNotContains(errors, workflow, forbidden, `${variant.id} basic generated CI should not require deployment secret ${forbidden}.`);
+  }
+
+  for (const project of [apiProject, modulesProject, buildingBlocksProject]) {
+    assertNotContains(errors, project, "Dockerfile", `${variant.id} production projects should not reference Dockerfile.`);
+    assertNotContains(errors, project, "docker-compose", `${variant.id} production projects should not reference compose files.`);
+    assertNotContains(errors, project, ".github", `${variant.id} production projects should not reference workflow files.`);
+    assertNotContains(errors, project, ".env.example", `${variant.id} production projects should not reference env examples.`);
+  }
+
+  const modulesRoot = join(output, "src", `${variant.name}.Modules`, "Modules");
+  for (const moduleFile of listFilesAbsolute(modulesRoot).filter(file => file.endsWith("Module.cs"))) {
+    const moduleContent = readAbsolute(moduleFile);
+    if (!moduleContent.includes(`GetConnectionString("Postgres")`)) {
+      continue;
+    }
+
+    if (!moduleContent.includes("string.IsNullOrWhiteSpace(connectionString)")) {
+      errors.push(`${variant.id} ${relative(output, moduleFile)} should fail fast when ConnectionStrings:Postgres is blank.`);
+    }
+  }
+
+  const deploymentFiles = [dockerfile, dockerignore, compose, envExample, productionSettings, deploymentDocs, workflow];
+  for (const file of deploymentFiles) {
+    for (const token of ["Aegis.Template", "AegisProfileValue", "AegisMediatorValue", "AegisSampleValue", "TODO_TEMPLATE"]) {
+      assertNotContains(errors, file, token, `${variant.id} deployment skeleton contains unresolved template token ${token}.`);
+    }
+    for (const forbidden of ["super-secret", "password123", "ghcr.io/", "docker.io/", "azurecr.io", "amazonaws.com", "gcr.io"]) {
+      assertNotContains(errors, file, forbidden, `${variant.id} deployment skeleton should not contain real secret/provider marker ${forbidden}.`);
+    }
+  }
+}
+
 function assertAiSemantics(errors, output, variant) {
   const aiFiles = [
     "AGENTS.md",
@@ -1007,6 +1144,7 @@ function assertArchitectureTestSemantics(errors, output, variant) {
     "ContractBoundaryTests.cs",
     "ApiEndpointTests.cs",
     "InboxArchitectureTests.cs",
+    "DeploymentSkeletonTests.cs",
     "PersistenceArchitectureTests.cs",
     "ProfileOptionWiringTests.cs"
   ];
@@ -1105,6 +1243,11 @@ function assertArchitectureTestSemantics(errors, output, variant) {
   assertContains(errors, contractBoundaryTests, "Production_projects_do_not_reference_contract_tests", `${variant.id} architecture tests should assert production projects do not reference contract tests.`);
   assertContains(errors, contractBoundaryTests, "Integration_contracts_do_not_depend_on_infrastructure", `${variant.id} architecture tests should assert integration contracts do not depend on infrastructure.`);
   assertContains(errors, contractBoundaryTests, "Production_api_contract_does_not_reference_fake_auth_test_infrastructure", `${variant.id} architecture tests should assert production API contracts do not reference fake auth.`);
+
+  const deploymentTests = join(architectureRoot, "DeploymentSkeletonTests.cs");
+  assertContains(errors, deploymentTests, "Deployment_skeleton_matches_selected_profile", `${variant.id} architecture tests should assert deployment profile behavior.`);
+  assertContains(errors, deploymentTests, "Deployment_files_do_not_contain_hardcoded_real_secrets_or_provider_targets", `${variant.id} architecture tests should assert deployment files do not contain real secrets or provider targets.`);
+  assertContains(errors, deploymentTests, "Production_projects_do_not_reference_deployment_scripts_or_workflow_files", `${variant.id} architecture tests should assert production projects do not reference deployment scripts.`);
 }
 
 function assertItemModuleSemantics(errors, moduleRoot, variant) {
@@ -1385,6 +1528,7 @@ async function checkDocs() {
     "docs/cli-template-spec.md",
     "docs/implementation-plan.md",
     "docs/testing.md",
+    "docs/deployment.md",
     "docs/contracts.md",
     "docs/messaging.md",
     "docs/acceptance-criteria.md",
@@ -1582,6 +1726,7 @@ async function checkTemplateSmoke() {
     assertP1D2BInboxSemantics(errors, output, variant);
     assertP1D3AContractTestSemantics(errors, output, variant);
     assertP1D3BPerformanceSmokeSemantics(errors, output, variant);
+    assertP1D4DeploymentSkeletonSemantics(errors, output, variant);
     assertAiSemantics(errors, output, variant);
     assertGuardrailSemantics(errors, output, variant);
     assertHookSemantics(errors, output, variant);
