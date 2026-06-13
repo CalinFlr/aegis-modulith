@@ -3,20 +3,31 @@ name: security-review
 description: Use when auth, authorization, secrets, dependency, or logging behavior changes.
 ---
 
-# Security Review
+# security-review
 
 ## Goal
 
-Review security-sensitive changes with explicit risk handling.
+Use when auth, authorization, secrets, dependency, or logging behavior changes.
+
+## Required context
+
+Read `AGENTS.md` first. Then read the relevant file under `.ai/workflows` and `.ai/policies`.
 
 ## Procedure
 
-- Do not read or commit secrets.
-- Check auth/authz, logging, dependency, and CI changes.
-- Require human review for high or critical risk areas.
+- Classify risk.
+- Check no secret leaks.
+- Check no PII logging.
+- Require human approval for high-risk changes.
 
 ## Validation
 
+Run the smallest relevant checks, and before completion run:
+
 ```bash
-npm run check:security
+npm run check
 ```
+
+## Final response
+
+Report files changed, validation commands, risks, and remaining limitations.

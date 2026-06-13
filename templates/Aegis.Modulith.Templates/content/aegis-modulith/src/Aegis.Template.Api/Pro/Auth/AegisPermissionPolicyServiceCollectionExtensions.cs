@@ -27,7 +27,15 @@ public static class AegisPermissionPolicyServiceCollectionExtensions
             policy.RequireAuthenticatedUser();
             policy.RequireAssertion(context =>
                 context.User.HasClaim(AegisPermissionClaimTypes.Permission, permission) ||
-                context.User.HasClaim(AegisPermissionClaimTypes.Scope, permission));
+                HasScopeClaim(context, permission));
         });
+    }
+
+    private static bool HasScopeClaim(AuthorizationHandlerContext context, string permission)
+    {
+        return context.User
+            .FindAll(AegisPermissionClaimTypes.Scope)
+            .SelectMany(claim => claim.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Contains(permission, StringComparer.Ordinal);
     }
 }

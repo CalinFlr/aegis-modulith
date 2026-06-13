@@ -3,20 +3,31 @@ name: guardrail-runner
 description: Use when adding or modifying Node .mjs guardrail checks.
 ---
 
-# Guardrail Runner
+# guardrail-runner
 
 ## Goal
 
-Keep guardrail checks deterministic, cross-platform, and implemented in Node `.mjs`.
+Use when adding or modifying Node .mjs guardrail checks.
+
+## Required context
+
+Read `AGENTS.md` first. Then read the relevant file under `.ai/workflows` and `.ai/policies`.
 
 ## Procedure
 
-- Use `node:child_process` with `shell: false`.
-- Do not duplicate check logic in shell scripts.
-- Add semantic checks for generated behavior.
+- Keep runner cross-platform.
+- Use node:child_process with shell false.
+- Do not duplicate logic in shell scripts.
+- Add tests or sample failing cases.
 
 ## Validation
+
+Run the smallest relevant checks, and before completion run:
 
 ```bash
 npm run check
 ```
+
+## Final response
+
+Report files changed, validation commands, risks, and remaining limitations.

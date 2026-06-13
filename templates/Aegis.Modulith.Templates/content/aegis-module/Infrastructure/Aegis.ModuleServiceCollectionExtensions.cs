@@ -10,11 +10,12 @@ public static class Aegis.ModuleServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("Postgres")
+            ?? throw new InvalidOperationException("Connection string 'Postgres' is required for the Aegis.Module module.");
+
         services.AddDbContext<Aegis.ModuleDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("Postgres") ?? DefaultConnectionString));
+            options.UseNpgsql(connectionString));
 
         return services;
     }
-
-    private const string DefaultConnectionString = "Host=localhost;Port=5432;Database=aegis_template;Username=postgres;Password=postgres";
 }

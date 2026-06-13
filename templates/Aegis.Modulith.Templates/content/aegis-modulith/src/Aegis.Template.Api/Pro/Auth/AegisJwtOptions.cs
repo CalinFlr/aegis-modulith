@@ -1,8 +1,11 @@
+using System.Text;
+
 namespace Aegis.Template.Api.Pro.Auth;
 
 public sealed class AegisJwtOptions
 {
     public const string SectionName = "Authentication:Jwt";
+    public const int MinimumSigningKeyBytes = 32;
 
     public string? Issuer { get; init; }
 
@@ -15,5 +18,9 @@ public sealed class AegisJwtOptions
     public bool IsConfigured =>
         !string.IsNullOrWhiteSpace(Issuer) &&
         !string.IsNullOrWhiteSpace(Audience) &&
-        !string.IsNullOrWhiteSpace(SigningKey);
+        HasSufficientSigningKey;
+
+    public bool HasSufficientSigningKey =>
+        !string.IsNullOrWhiteSpace(SigningKey) &&
+        Encoding.UTF8.GetByteCount(SigningKey) >= MinimumSigningKeyBytes;
 }

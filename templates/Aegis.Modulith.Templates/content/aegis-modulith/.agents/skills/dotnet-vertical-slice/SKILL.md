@@ -3,20 +3,31 @@ name: dotnet-vertical-slice
 description: Use when adding or modifying a CQRS vertical slice in a module.
 ---
 
-# .NET Vertical Slice
+# dotnet-vertical-slice
 
 ## Goal
 
-Add a command or query slice that stays inside its owning module.
+Use when adding or modifying a CQRS vertical slice in a module.
+
+## Required context
+
+Read `AGENTS.md` first. Then read the relevant file under `.ai/workflows` and `.ai/policies`.
 
 ## Procedure
 
-- Commands express business intent.
-- Queries do not mutate state.
-- Keep request, handler, endpoint, validator, and response files in the feature folder.
+- Create endpoint, request, handler, response, validator if needed.
+- Keep business logic out of endpoints.
+- Add tests and OpenAPI metadata.
+- Run npm run check.
 
 ## Validation
 
+Run the smallest relevant checks, and before completion run:
+
 ```bash
-dotnet test -c Release
+npm run check
 ```
+
+## Final response
+
+Report files changed, validation commands, risks, and remaining limitations.

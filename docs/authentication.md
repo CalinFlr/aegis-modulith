@@ -28,13 +28,13 @@ Generated pro and advanced APIs read JWT settings from:
 }
 ```
 
-Do not commit real signing keys. Use user secrets, environment variables, a secret manager, or the deployment platform's secret store for real values.
+Do not commit real signing keys. Use user secrets, environment variables, a secret manager, or the deployment platform's secret store for real values. The symmetric signing key must be at least 32 UTF-8 bytes; shorter values keep the JWT bearer configuration in reject-all mode.
 
 If issuer, audience, or signing key is missing, generated JWT validation uses a reject-all configuration. The app can start, but protected endpoints do not accept arbitrary bearer tokens.
 
 ## Permissions
 
-Permissions are represented as claims. The generated policy scaffold checks the `permission` claim and also accepts a matching `scope` claim for compatibility with identity providers that emit scopes.
+Permissions are represented as claims. The generated policy scaffold checks the `permission` claim and also accepts matching `scope` claims for compatibility with identity providers that emit either one scope claim per value or a standard space-delimited scope string.
 
 Generated examples include:
 

@@ -54,7 +54,7 @@ dotnet new aegis-modulith -n Aegis.TaskHub --profile pro --sample taskhub
 | --- | --- | --- |
 | `core` | Minimal production-minded API foundation | Minimal APIs, CQRS-lite, vertical slices, PostgreSQL, OpenAPI, health checks, architecture tests |
 | `pro` | Recommended default | Core plus Aspire-ready AppHost/ServiceDefaults, outbox, audit, idempotency, background worker, Dockerfile, CI-ready guardrails |
-| `advanced` | Enterprise scaffolding | Pro plus permission, JWT/auth, tenancy, deployment, strict guardrail, and contract-test skeletons |
+| `advanced` | Enterprise scaffolding | Pro plus permission and tenancy placeholders, deployment notes, strict guardrail stance, and contract-test skeletons |
 
 Defaults:
 
