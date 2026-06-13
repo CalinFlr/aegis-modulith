@@ -34,7 +34,10 @@ public sealed class PersistenceArchitectureTests
             var content = File.ReadAllText(dbContextFile);
 
             Assert.Contains("HasDefaultSchema", content, StringComparison.Ordinal);
-            Assert.Matches(new Regex($@"HasDefaultSchema\s*\(\s*""{Regex.Escape(schema)}""\s*\)"), content);
+            var literalSchema = Regex.IsMatch(content, $@"HasDefaultSchema\s*\(\s*""{Regex.Escape(schema)}""\s*\)");
+            var constantSchema = Regex.IsMatch(content, $@"const\s+string\s+Schema\s*=\s*""{Regex.Escape(schema)}""") &&
+                Regex.IsMatch(content, @"HasDefaultSchema\s*\(\s*Schema\s*\)");
+            Assert.True(literalSchema || constantSchema, $"{ArchitectureTestContext.Relative(dbContextFile)} must set the default schema to {schema}.");
         }
     }
 
@@ -45,12 +48,18 @@ public sealed class PersistenceArchitectureTests
         {
             ".HasForeignKey(",
             "HasForeignKey<",
-            "[ForeignKey"
+            ".HasOne(",
+            ".HasMany(",
+            ".WithOne(",
+            ".WithMany(",
+            "[ForeignKey",
+            "[InverseProperty",
+            "System.ComponentModel.DataAnnotations.Schema"
         };
 
-        foreach (var dbContextFile in Directory.GetFiles(ArchitectureTestContext.ModulesRoot, "*DbContext.cs", SearchOption.AllDirectories))
+        foreach (var sourceFile in ArchitectureTestContext.SourceFilesUnder(ArchitectureTestContext.ModulesRoot))
         {
-            var content = File.ReadAllText(dbContextFile);
+            var content = File.ReadAllText(sourceFile);
             foreach (var marker in forbiddenMarkers)
             {
                 Assert.DoesNotContain(marker, content, StringComparison.Ordinal);

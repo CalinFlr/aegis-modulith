@@ -42,6 +42,7 @@ public sealed class CqrsArchitectureTests
             var responseType = ArchitectureTestContext.GetOpenGenericInterfaces(commandType, typeof(ICommand<>))
                 .Single()
                 .GetGenericArguments()[0];
+            AssertResponseTypeDoesNotExposeDomainOrInfrastructure(commandType, responseType);
             Assert.Contains(commandHandlerBindings, binding => binding.RequestType == commandType && binding.ResponseType == responseType);
         }
 
@@ -50,6 +51,7 @@ public sealed class CqrsArchitectureTests
             var responseType = ArchitectureTestContext.GetOpenGenericInterfaces(queryType, typeof(IQuery<>))
                 .Single()
                 .GetGenericArguments()[0];
+            AssertResponseTypeDoesNotExposeDomainOrInfrastructure(queryType, responseType);
             Assert.Contains(queryHandlerBindings, binding => binding.RequestType == queryType && binding.ResponseType == responseType);
         }
 
@@ -78,6 +80,13 @@ public sealed class CqrsArchitectureTests
             var content = File.ReadAllText(file);
             Assert.DoesNotContain("SaveChanges(", content, StringComparison.Ordinal);
             Assert.DoesNotContain("SaveChangesAsync(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteUpdate(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteUpdateAsync(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteDelete(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteDeleteAsync(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteSql(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteSqlRaw(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteSqlInterpolated(", content, StringComparison.Ordinal);
 
             if (content.Contains("DbContext", StringComparison.Ordinal) ||
                 content.Contains("Microsoft.EntityFrameworkCore", StringComparison.Ordinal))
@@ -106,6 +115,41 @@ public sealed class CqrsArchitectureTests
             var sliceName = parts[featuresIndex + 1];
             var fileName = Path.GetFileNameWithoutExtension(file);
             Assert.StartsWith(sliceName, fileName, StringComparison.Ordinal);
+        }
+    }
+
+    private static void AssertResponseTypeDoesNotExposeDomainOrInfrastructure(Type requestType, Type responseType)
+    {
+        foreach (var type in FlattenResponseTypes(responseType))
+        {
+            var fullName = type.FullName ?? type.Name;
+            Assert.DoesNotContain(".Domain.", fullName, StringComparison.Ordinal);
+            Assert.DoesNotContain(".Infrastructure.", fullName, StringComparison.Ordinal);
+            Assert.False(
+                type.Namespace?.Contains(".Domain", StringComparison.Ordinal) == true,
+                $"{requestType.FullName} must not expose domain type {fullName} as its CQRS response.");
+            Assert.False(
+                type.Namespace?.Contains(".Infrastructure", StringComparison.Ordinal) == true,
+                $"{requestType.FullName} must not expose infrastructure type {fullName} as its CQRS response.");
+        }
+    }
+
+    private static IEnumerable<Type> FlattenResponseTypes(Type type)
+    {
+        var effectiveType = Nullable.GetUnderlyingType(type) ?? type;
+        yield return effectiveType;
+
+        if (effectiveType == typeof(string))
+        {
+            yield break;
+        }
+
+        foreach (var argument in effectiveType.GetGenericArguments())
+        {
+            foreach (var nested in FlattenResponseTypes(argument))
+            {
+                yield return nested;
+            }
         }
     }
 

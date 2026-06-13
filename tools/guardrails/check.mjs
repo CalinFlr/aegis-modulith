@@ -497,6 +497,8 @@ function assertArchitectureTestSemantics(errors, output, variant) {
   const cqrsTests = join(architectureRoot, "CqrsArchitectureTests.cs");
   assertContains(errors, cqrsTests, "Commands_and_queries_follow_generated_abstractions", `${variant.id} architecture tests should assert CQRS request abstractions.`);
   assertContains(errors, cqrsTests, "Query_handlers_do_not_mutate_state_and_use_no_tracking_for_ef_queries", `${variant.id} architecture tests should assert query non-mutation and no-tracking EF queries.`);
+  assertContains(errors, cqrsTests, "ExecuteUpdateAsync", `${variant.id} architecture tests should block EF bulk mutations from query handlers.`);
+  assertContains(errors, cqrsTests, "AssertResponseTypeDoesNotExposeDomainOrInfrastructure", `${variant.id} architecture tests should prevent CQRS responses from exposing domain or infrastructure types.`);
   assertContains(errors, cqrsTests, "MediatR.IRequest", `${variant.id} architecture tests should keep MediatR compatibility covered.`);
 
   const profileTests = join(architectureRoot, "ProfileOptionWiringTests.cs");
@@ -509,14 +511,18 @@ function assertArchitectureTestSemantics(errors, output, variant) {
 
   const domainTests = join(architectureRoot, "DomainIsolationTests.cs");
   assertContains(errors, domainTests, "Domain_source_files_do_not_depend_on_web_or_persistence_infrastructure", `${variant.id} architecture tests should assert domain isolation.`);
+  assertContains(errors, domainTests, "DomainModelSourceFiles", `${variant.id} architecture tests should include domain events in domain isolation checks.`);
   assertContains(errors, domainTests, "Domain_events_are_module_owned_and_follow_the_domain_event_abstraction", `${variant.id} architecture tests should assert domain event abstraction.`);
 
   const endpointTests = join(architectureRoot, "ApiEndpointTests.cs");
   assertContains(errors, endpointTests, "Module_endpoint_mappings_do_not_perform_persistence_directly", `${variant.id} architecture tests should assert endpoints do not persist directly.`);
+  assertContains(errors, endpointTests, "ModuleDbContextTypeNames", `${variant.id} architecture tests should reject direct module DbContext usage in endpoints.`);
+  assertContains(errors, endpointTests, "*Endpoint.cs", `${variant.id} architecture tests should scan feature endpoint helper files.`);
 
   const persistenceTests = join(architectureRoot, "PersistenceArchitectureTests.cs");
   assertContains(errors, persistenceTests, "Each_module_has_one_module_scoped_dbcontext", `${variant.id} architecture tests should assert module-scoped DbContexts.`);
   assertContains(errors, persistenceTests, "Generated_dbcontexts_do_not_configure_foreign_keys_by_default", `${variant.id} architecture tests should assert no generated FK configuration by default.`);
+  assertContains(errors, persistenceTests, "System.ComponentModel.DataAnnotations.Schema", `${variant.id} architecture tests should scan entity sources for FK relationship attributes.`);
 }
 
 function assertItemModuleSemantics(errors, moduleRoot, variant) {
@@ -1133,6 +1139,11 @@ async function checkTemplateSmoke() {
     code = await runCommand("dotnet", ["build", join(output, `${variant.name}.sln`), "-c", "Release", "--no-restore"], { env: smokeEnv });
     if (code !== 0) {
       return fail("template smoke", [`generated solution build failed after item templates for ${variant.id}.`]);
+    }
+
+    code = await runCommand("dotnet", ["test", join(output, `${variant.name}.sln`), "-c", "Release", "--no-build"], { env: smokeEnv });
+    if (code !== 0) {
+      return fail("template smoke", [`generated architecture tests failed after item templates for ${variant.id}.`]);
     }
 
     assertItemModuleSemantics(errors, moduleRoot, variant);
