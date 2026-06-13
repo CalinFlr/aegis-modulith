@@ -19,19 +19,32 @@ public sealed class AegisWebApplicationFactory : WebApplicationFactory<Program>
     private readonly string? postgresConnectionString;
     private readonly string? previousConnectionString;
 
-    public AegisWebApplicationFactory(
-        string? postgresConnectionString = null,
-        bool enableFakeAuthentication = false)
+    private AegisWebApplicationFactory(
+        string? postgresConnectionString,
+        bool enableFakeAuthentication,
+        string? previousConnectionString)
     {
         this.postgresConnectionString = postgresConnectionString;
         this.enableFakeAuthentication = enableFakeAuthentication;
-        previousConnectionString = Environment.GetEnvironmentVariable(PostgresConnectionStringEnvironmentKey);
-        Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, GetPostgresConnectionString());
+        this.previousConnectionString = previousConnectionString;
+    }
+
+    public static AegisWebApplicationFactory WithPostgres(string? postgresConnectionString = null)
+    {
+        var previousConnectionString = SetPostgresConnectionString(postgresConnectionString);
+        return new AegisWebApplicationFactory(
+            postgresConnectionString,
+            enableFakeAuthentication: false,
+            previousConnectionString);
     }
 
     public static AegisWebApplicationFactory WithFakeAuthentication(string? postgresConnectionString = null)
     {
-        return new AegisWebApplicationFactory(postgresConnectionString, enableFakeAuthentication: true);
+        var previousConnectionString = SetPostgresConnectionString(postgresConnectionString);
+        return new AegisWebApplicationFactory(
+            postgresConnectionString,
+            enableFakeAuthentication: true,
+            previousConnectionString);
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -91,5 +104,17 @@ public sealed class AegisWebApplicationFactory : WebApplicationFactory<Program>
         return string.IsNullOrWhiteSpace(postgresConnectionString)
             ? DefaultPostgresConnectionString
             : postgresConnectionString;
+    }
+
+    private static string? SetPostgresConnectionString(string? postgresConnectionString)
+    {
+        var previousConnectionString = Environment.GetEnvironmentVariable(PostgresConnectionStringEnvironmentKey);
+        Environment.SetEnvironmentVariable(
+            PostgresConnectionStringEnvironmentKey,
+            string.IsNullOrWhiteSpace(postgresConnectionString)
+                ? DefaultPostgresConnectionString
+                : postgresConnectionString);
+
+        return previousConnectionString;
     }
 }
