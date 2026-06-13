@@ -1,4 +1,4 @@
-using Aegis.Template.Modules.Modules.WorkItems.Infrastructure;
+using Aegis.Template.Modules;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,7 +11,14 @@ public static class DatabaseInitialization
         // Starter modules do not generate EF Core migrations yet. When a module adds migrations,
         // replace this placeholder with Database.MigrateAsync calls for each module DbContext.
         using var scope = services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<WorkItemsDbContext>();
+        var dbContextType = typeof(ModuleRegistrationExtensions).Assembly
+            .GetTypes()
+            .Where(type => typeof(DbContext).IsAssignableFrom(type))
+            .Where(type => type is { IsClass: true, IsAbstract: false })
+            .OrderBy(type => type.FullName, StringComparer.Ordinal)
+            .First();
+
+        var dbContext = (DbContext)scope.ServiceProvider.GetRequiredService(dbContextType);
         try
         {
             await dbContext.Database.OpenConnectionAsync(cancellationToken);
