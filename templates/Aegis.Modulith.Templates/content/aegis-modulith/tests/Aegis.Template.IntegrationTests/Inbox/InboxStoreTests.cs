@@ -85,6 +85,38 @@ public sealed class InboxStoreTests
     }
 
     [Fact]
+    public async Task Pending_scan_includes_processing_messages_after_lease_expires()
+    {
+        await using var dbContext = CreateDbContext();
+        var store = CreateStore(dbContext);
+        var message = CreateSampleEvent();
+
+        await store.AcceptAsync(message.Id, typeof(SampleIntegrationEvent).FullName!, JsonSerializer.Serialize(message));
+        var stored = await dbContext.InboxMessages.SingleAsync();
+        stored.MarkProcessing(Guid.NewGuid(), DateTimeOffset.UtcNow.AddMinutes(-1));
+        await dbContext.SaveChangesAsync();
+
+        var pending = await store.GetPendingAsync(maxMessages: 10);
+
+        Assert.Contains(pending, candidate => candidate.MessageId == message.Id);
+    }
+
+    [Fact]
+    public async Task Active_processing_lease_is_not_claimed_again()
+    {
+        await using var dbContext = CreateDbContext();
+        var store = CreateStore(dbContext);
+        var message = CreateSampleEvent();
+
+        await store.AcceptAsync(message.Id, typeof(SampleIntegrationEvent).FullName!, JsonSerializer.Serialize(message));
+        var firstClaim = await store.TryBeginProcessingAsync(message.Id);
+        var secondClaim = await store.TryBeginProcessingAsync(message.Id);
+
+        Assert.NotNull(firstClaim);
+        Assert.Null(secondClaim);
+    }
+
+    [Fact]
     public async Task Processor_invokes_handler_once_for_duplicate_inputs()
     {
         await using var dbContext = CreateDbContext();

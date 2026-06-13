@@ -1,3 +1,4 @@
+using System.Reflection;
 using Aegis.Template.BuildingBlocks.Cqrs;
 
 namespace Aegis.Template.ArchitectureTests;
@@ -42,6 +43,7 @@ public sealed class CqrsArchitectureTests
             var responseType = ArchitectureTestContext.GetOpenGenericInterfaces(commandType, typeof(ICommand<>))
                 .Single()
                 .GetGenericArguments()[0];
+            AssertResponseTypeDoesNotExposeDomainOrInfrastructure(commandType, responseType);
             Assert.Contains(commandHandlerBindings, binding => binding.RequestType == commandType && binding.ResponseType == responseType);
         }
 
@@ -50,6 +52,7 @@ public sealed class CqrsArchitectureTests
             var responseType = ArchitectureTestContext.GetOpenGenericInterfaces(queryType, typeof(IQuery<>))
                 .Single()
                 .GetGenericArguments()[0];
+            AssertResponseTypeDoesNotExposeDomainOrInfrastructure(queryType, responseType);
             Assert.Contains(queryHandlerBindings, binding => binding.RequestType == queryType && binding.ResponseType == responseType);
         }
 
@@ -78,11 +81,18 @@ public sealed class CqrsArchitectureTests
             var content = File.ReadAllText(file);
             Assert.DoesNotContain("SaveChanges(", content, StringComparison.Ordinal);
             Assert.DoesNotContain("SaveChangesAsync(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteUpdate(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteUpdateAsync(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteDelete(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteDeleteAsync(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteSql(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteSqlRaw(", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExecuteSqlInterpolated(", content, StringComparison.Ordinal);
 
             if (content.Contains("DbContext", StringComparison.Ordinal) ||
                 content.Contains("Microsoft.EntityFrameworkCore", StringComparison.Ordinal))
             {
-                Assert.Contains(".AsNoTracking()", content, StringComparison.Ordinal);
+                Assert.True(UsesNoTrackingQuery(content), $"{ArchitectureTestContext.Relative(file)} must use a no-tracking EF query API.");
             }
         }
     }
@@ -109,12 +119,88 @@ public sealed class CqrsArchitectureTests
         }
     }
 
+    private static void AssertResponseTypeDoesNotExposeDomainOrInfrastructure(Type requestType, Type responseType)
+    {
+        foreach (var type in FlattenResponseTypes(responseType))
+        {
+            var fullName = type.FullName ?? type.Name;
+            Assert.DoesNotContain(".Domain.", fullName, StringComparison.Ordinal);
+            Assert.DoesNotContain(".Infrastructure.", fullName, StringComparison.Ordinal);
+            Assert.False(
+                type.Namespace?.Contains(".Domain", StringComparison.Ordinal) == true,
+                $"{requestType.FullName} must not expose domain type {fullName} as its CQRS response.");
+            Assert.False(
+                type.Namespace?.Contains(".Infrastructure", StringComparison.Ordinal) == true,
+                $"{requestType.FullName} must not expose infrastructure type {fullName} as its CQRS response.");
+        }
+    }
+
+    private static IEnumerable<Type> FlattenResponseTypes(Type type)
+    {
+        return FlattenResponseTypes(type, []);
+    }
+
+    private static IEnumerable<Type> FlattenResponseTypes(Type type, HashSet<Type> visited)
+    {
+        var effectiveType = Nullable.GetUnderlyingType(type) ?? type;
+        if (!visited.Add(effectiveType))
+        {
+            yield break;
+        }
+
+        yield return effectiveType;
+
+        foreach (var argument in effectiveType.GetGenericArguments())
+        {
+            foreach (var nested in FlattenResponseTypes(argument, visited))
+            {
+                yield return nested;
+            }
+        }
+
+        if (effectiveType == typeof(string) ||
+            effectiveType.IsPrimitive ||
+            effectiveType.IsEnum ||
+            effectiveType.Namespace?.StartsWith("System", StringComparison.Ordinal) == true)
+        {
+            yield break;
+        }
+
+        foreach (var memberType in PublicMemberTypes(effectiveType))
+        {
+            foreach (var nested in FlattenResponseTypes(memberType, visited))
+            {
+                yield return nested;
+            }
+        }
+    }
+
     private static IReadOnlyList<Type> FeatureTypesEndingWith(string suffix)
     {
         return ArchitectureTestContext.ModuleTypes()
             .Where(type => type.Namespace?.Contains(".Features.", StringComparison.Ordinal) == true)
             .Where(type => type.Name.EndsWith(suffix, StringComparison.Ordinal))
             .ToArray();
+    }
+
+    private static IEnumerable<Type> PublicMemberTypes(Type type)
+    {
+        foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            yield return property.PropertyType;
+        }
+
+        foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
+        {
+            yield return field.FieldType;
+        }
+
+        foreach (var parameter in type
+            .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
+            .SelectMany(constructor => constructor.GetParameters()))
+        {
+            yield return parameter.ParameterType;
+        }
     }
 
     private static IReadOnlyList<HandlerBinding> HandlerBindings(Type handlerOpenGenericType)
@@ -153,13 +239,28 @@ public sealed class CqrsArchitectureTests
             .Any(fullName => fullName == openGenericFullName);
     }
 
+    private static bool UsesNoTrackingQuery(string content)
+    {
+        return content.Contains(".AsNoTracking()", StringComparison.Ordinal) ||
+               content.Contains(".AsNoTrackingWithIdentityResolution()", StringComparison.Ordinal) ||
+               content.Contains("QueryTrackingBehavior.NoTracking", StringComparison.Ordinal) ||
+               content.Contains("UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)", StringComparison.Ordinal);
+    }
+
     private static bool IsSliceSourceFile(string file)
     {
         var name = Path.GetFileNameWithoutExtension(file);
         return name.EndsWith("Command", StringComparison.Ordinal) ||
                name.EndsWith("Query", StringComparison.Ordinal) ||
-               name.EndsWith("Handler", StringComparison.Ordinal) ||
+               (name.EndsWith("Handler", StringComparison.Ordinal) && IsCqrsHandlerSource(file)) ||
                name.EndsWith("Response", StringComparison.Ordinal);
+    }
+
+    private static bool IsCqrsHandlerSource(string file)
+    {
+        var content = File.ReadAllText(file);
+        return content.Contains("ICommandHandler<", StringComparison.Ordinal) ||
+               content.Contains("IQueryHandler<", StringComparison.Ordinal);
     }
 
     private sealed record HandlerBinding(Type HandlerType, Type RequestType, Type ResponseType);

@@ -18,5 +18,6 @@ public sealed class InboxMessageConfiguration : IEntityTypeConfiguration<InboxMe
         builder.Property(message => message.Payload).IsRequired();
         builder.Property(message => message.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
         builder.Property(message => message.FailureReason).HasMaxLength(2048);
+        builder.Property(message => message.ConcurrencyToken).IsConcurrencyToken();
     }
 }

@@ -1,11 +1,5 @@
 # Guardrails
 
-Generated guardrails mode: `AegisGuardrailsValue`.
+Guardrails are deterministic checks. They are implemented by `tools/guardrails/check.mjs` and invoked through `npm run` scripts.
 
-Guardrails are deterministic checks that help agents and maintainers catch repository-shape drift before CI.
-
-Run:
-
-```bash
-npm run check
-```
+Do not duplicate this logic in Bash and PowerShell.

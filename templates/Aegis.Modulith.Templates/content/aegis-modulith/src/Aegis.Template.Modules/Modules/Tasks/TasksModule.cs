@@ -23,8 +23,11 @@ public sealed class TasksModule : IAegisModule
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("Postgres")
+            ?? throw new InvalidOperationException("ConnectionStrings:Postgres must be configured for the Tasks module.");
+
         services.AddDbContext<TasksDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("Postgres") ?? DefaultConnectionString));
+            options.UseNpgsql(connectionString));
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -54,6 +57,4 @@ public sealed class TasksModule : IAegisModule
 #endif
             ;
     }
-
-    private const string DefaultConnectionString = "Host=localhost;Port=5432;Database=aegis_template;Username=postgres;Password=postgres";
 }

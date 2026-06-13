@@ -3,20 +3,31 @@ name: efcore-migration-review
 description: Use when adding or reviewing EF Core migrations.
 ---
 
-# EF Core Migration Review
+# efcore-migration-review
 
 ## Goal
 
-Review migrations for module ownership, schema boundaries, and safe rollout.
+Use when adding or reviewing EF Core migrations.
+
+## Required context
+
+Read `AGENTS.md` first. Then read the relevant file under `.ai/workflows` and `.ai/policies`.
 
 ## Procedure
 
-- Confirm the migration belongs to one module.
-- Avoid cross-module foreign keys.
-- Check rollback and data-risk notes.
+- Verify owning module.
+- Look for destructive changes.
+- Add rollback note.
+- Run integration tests.
 
 ## Validation
 
+Run the smallest relevant checks, and before completion run:
+
 ```bash
-dotnet test -c Release
+npm run check
 ```
+
+## Final response
+
+Report files changed, validation commands, risks, and remaining limitations.

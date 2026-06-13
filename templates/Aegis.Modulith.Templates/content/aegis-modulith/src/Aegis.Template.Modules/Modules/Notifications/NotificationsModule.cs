@@ -15,8 +15,11 @@ public sealed class NotificationsModule : IAegisModule
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("Postgres")
+            ?? throw new InvalidOperationException("ConnectionStrings:Postgres must be configured for the Notifications module.");
+
         services.AddDbContext<NotificationsDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("Postgres") ?? DefaultConnectionString));
+            options.UseNpgsql(connectionString));
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -27,6 +30,4 @@ public sealed class NotificationsModule : IAegisModule
             status = "queue-ready"
         })).WithTags(Name).WithName("ListNotifications");
     }
-
-    private const string DefaultConnectionString = "Host=localhost;Port=5432;Database=aegis_template;Username=postgres;Password=postgres";
 }

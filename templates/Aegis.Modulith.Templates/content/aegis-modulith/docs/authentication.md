@@ -24,13 +24,13 @@ Example configuration:
 }
 ```
 
-Do not commit real signing keys. Use user secrets, environment variables, a secret manager, or the deployment platform's secret store for real values.
+Do not commit real signing keys. Use user secrets, environment variables, a secret manager, or the deployment platform's secret store for real values. The symmetric signing key must be at least 32 UTF-8 bytes; shorter values keep the JWT bearer configuration in reject-all mode.
 
 If issuer, audience, or signing key is missing, JWT validation uses a reject-all configuration. The app can start, but protected endpoints do not accept arbitrary bearer tokens.
 
 ## Permissions
 
-Permissions are represented as claims. Generated policies check the `permission` claim and also accept a matching `scope` claim for compatibility with identity providers that emit scopes.
+Permissions are represented as claims. Generated policies check the `permission` claim and also accept matching `scope` claims for compatibility with identity providers that emit either one scope claim per value or a standard space-delimited scope string.
 
 Generated examples include:
 

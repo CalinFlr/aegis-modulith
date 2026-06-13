@@ -41,6 +41,8 @@ public sealed class InboxMessage
 
     public DateTimeOffset? LockedUntilUtc { get; private set; }
 
+    public Guid ConcurrencyToken { get; private set; } = Guid.NewGuid();
+
     public bool IsProcessed => Status == InboxMessageStatus.Processed;
 
     public void MarkProcessing(Guid lockToken, DateTimeOffset lockedUntilUtc)
@@ -50,6 +52,7 @@ public sealed class InboxMessage
         LockToken = lockToken;
         LockedUntilUtc = lockedUntilUtc;
         FailureReason = null;
+        ConcurrencyToken = Guid.NewGuid();
     }
 
     public void MarkProcessed(DateTimeOffset processedAtUtc)
@@ -59,6 +62,7 @@ public sealed class InboxMessage
         FailureReason = null;
         LockToken = null;
         LockedUntilUtc = null;
+        ConcurrencyToken = Guid.NewGuid();
     }
 
     public void MarkFailed(string failureReason)
@@ -67,5 +71,6 @@ public sealed class InboxMessage
         FailureReason = failureReason;
         LockToken = null;
         LockedUntilUtc = null;
+        ConcurrencyToken = Guid.NewGuid();
     }
 }
