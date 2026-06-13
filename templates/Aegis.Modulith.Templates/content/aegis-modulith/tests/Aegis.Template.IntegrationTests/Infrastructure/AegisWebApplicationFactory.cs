@@ -8,14 +8,26 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aegis.Template.IntegrationTests.Infrastructure;
 
-public sealed class AegisWebApplicationFactory(
-    string? postgresConnectionString = null,
-    bool enableFakeAuthentication = false) : WebApplicationFactory<Program>
+public sealed class AegisWebApplicationFactory : WebApplicationFactory<Program>
 {
     private const string PostgresConnectionStringKey = "ConnectionStrings:Postgres";
     private const string PostgresConnectionStringEnvironmentKey = "ConnectionStrings__Postgres";
     private const string DefaultPostgresConnectionString =
         "Host=localhost;Port=5432;Database=aegis_template_tests;Username=postgres;Password=postgres";
+
+    private readonly bool enableFakeAuthentication;
+    private readonly string? postgresConnectionString;
+    private readonly string? previousConnectionString;
+
+    public AegisWebApplicationFactory(
+        string? postgresConnectionString = null,
+        bool enableFakeAuthentication = false)
+    {
+        this.postgresConnectionString = postgresConnectionString;
+        this.enableFakeAuthentication = enableFakeAuthentication;
+        previousConnectionString = Environment.GetEnvironmentVariable(PostgresConnectionStringEnvironmentKey);
+        Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, GetPostgresConnectionString());
+    }
 
     public static AegisWebApplicationFactory WithFakeAuthentication(string? postgresConnectionString = null)
     {
@@ -35,6 +47,12 @@ public sealed class AegisWebApplicationFactory(
         {
             Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, previousConnectionString);
         }
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, previousConnectionString);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
