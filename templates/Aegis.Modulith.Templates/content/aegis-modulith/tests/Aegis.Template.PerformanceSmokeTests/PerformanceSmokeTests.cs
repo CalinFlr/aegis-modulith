@@ -2,7 +2,6 @@ using System.Net;
 using Aegis.Template.BuildingBlocks.Authorization;
 using Aegis.Template.PerformanceSmokeTests.Authentication;
 using Aegis.Template.PerformanceSmokeTests.Infrastructure;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Aegis.Template.PerformanceSmokeTests;
 
@@ -13,7 +12,7 @@ public sealed class PerformanceSmokeTests
     {
         var elapsed = await PerformanceSmokeAssertions.MeasureOnceAsync("API test host startup", async () =>
         {
-            await using var factory = new WebApplicationFactory<Program>();
+            await using var factory = PerformanceSmokeWebApplicationFactory.Create();
             using var client = factory.CreateClient();
 
             using var response = await client.GetAsync("/");
@@ -27,7 +26,7 @@ public sealed class PerformanceSmokeTests
     [Fact]
     public async Task Health_endpoint_response_smoke_stays_within_loose_threshold()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = PerformanceSmokeWebApplicationFactory.Create();
         using var client = factory.CreateClient();
 
         var samples = await PerformanceSmokeAssertions.MeasureWarmedSamplesAsync(() => client.GetAsync("/health"));
@@ -38,7 +37,7 @@ public sealed class PerformanceSmokeTests
     [Fact]
     public async Task Authenticated_request_path_smoke_stays_within_loose_threshold()
     {
-        await using var factory = new PerformanceSmokeWebApplicationFactory();
+        await using var factory = PerformanceSmokeWebApplicationFactory.Create();
         using var client = factory.CreateClient();
         AddPermissions(client, AegisPermissions.OperationsRead);
 
@@ -50,7 +49,7 @@ public sealed class PerformanceSmokeTests
     [Fact]
     public async Task Cqrs_dispatch_request_path_smoke_stays_within_loose_threshold()
     {
-        await using var factory = new PerformanceSmokeWebApplicationFactory();
+        await using var factory = PerformanceSmokeWebApplicationFactory.Create();
         using var client = factory.CreateClient();
 
 #if (sample == "taskhub")
@@ -67,7 +66,7 @@ public sealed class PerformanceSmokeTests
     [Fact]
     public async Task OpenApi_document_generation_smoke_stays_within_loose_threshold()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = PerformanceSmokeWebApplicationFactory.Create();
         using var client = factory.CreateClient();
 
         var samples = await PerformanceSmokeAssertions.MeasureWarmedSamplesAsync(() => client.GetAsync("/openapi/v1.json"));

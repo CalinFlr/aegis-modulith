@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Aegis.Template.Api.Pro.Infrastructure.Inbox;
 
@@ -35,7 +36,7 @@ public sealed class EfCoreInboxStore(AegisInboxDbContext dbContext, ILogger<EfCo
             logger.LogInformation("Accepted inbox message {MessageId} of type {MessageType}.", messageId, messageType);
             return InboxAcceptResult.Accepted;
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
         {
             logger.LogInformation("Inbox message {MessageId} was already accepted by another request.", messageId);
             return InboxAcceptResult.Duplicate;
@@ -49,8 +50,15 @@ public sealed class EfCoreInboxStore(AegisInboxDbContext dbContext, ILogger<EfCo
 
     public async Task<IReadOnlyList<InboxMessage>> GetPendingAsync(int maxMessages, CancellationToken cancellationToken = default)
     {
+        var now = DateTimeOffset.UtcNow;
+
         return await dbContext.InboxMessages
-            .Where(message => message.Status == InboxMessageStatus.Pending || message.Status == InboxMessageStatus.Failed)
+            .Where(message =>
+                message.Status == InboxMessageStatus.Pending ||
+                message.Status == InboxMessageStatus.Failed ||
+                (message.Status == InboxMessageStatus.Processing &&
+                    message.LockedUntilUtc != null &&
+                    message.LockedUntilUtc <= now))
             .OrderBy(message => message.ReceivedAtUtc)
             .Take(maxMessages)
             .ToArrayAsync(cancellationToken);
@@ -74,8 +82,17 @@ public sealed class EfCoreInboxStore(AegisInboxDbContext dbContext, ILogger<EfCo
         }
 
         message.MarkProcessing(Guid.NewGuid(), DateTimeOffset.UtcNow.Add(ProcessingLease));
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return message;
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return message;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            logger.LogInformation("Inbox message {MessageId} was claimed by another processor.", messageId);
+            return null;
+        }
     }
 
     public async Task MarkProcessedAsync(Guid messageId, CancellationToken cancellationToken = default)
@@ -96,5 +113,10 @@ public sealed class EfCoreInboxStore(AegisInboxDbContext dbContext, ILogger<EfCo
         message.MarkFailed(failureReason);
         await dbContext.SaveChangesAsync(cancellationToken);
         logger.LogWarning("Inbox message {MessageId} failed: {FailureReason}", messageId, failureReason);
+    }
+
+    private static bool IsUniqueViolation(DbUpdateException exception)
+    {
+        return exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
     }
 }

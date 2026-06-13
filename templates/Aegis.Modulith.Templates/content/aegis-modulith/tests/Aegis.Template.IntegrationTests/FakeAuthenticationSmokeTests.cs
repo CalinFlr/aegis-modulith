@@ -38,4 +38,25 @@ public sealed class FakeAuthenticationSmokeTests
         Assert.Contains(result.Principal.Claims, claim => claim is { Type: FakeAuthenticationDefaults.ScopeClaimType, Value: "work-items:write" });
         Assert.Contains(result.Principal.Claims, claim => claim is { Type: FakeAuthenticationDefaults.PermissionClaimType, Value: "operations:read" });
     }
+
+    [Fact]
+    public async Task Fake_authentication_scheme_does_not_authenticate_without_test_headers()
+    {
+        await using var factory = AegisWebApplicationFactory.WithFakeAuthentication();
+
+        using var scope = factory.Services.CreateScope();
+        var context = new DefaultHttpContext
+        {
+            RequestServices = scope.ServiceProvider
+        };
+
+        var result = await scope.ServiceProvider
+            .GetRequiredService<IAuthenticationService>()
+            .AuthenticateAsync(context, FakeAuthenticationDefaults.AuthenticationScheme);
+
+        Assert.DoesNotContain(context.Request.Headers, header => header.Key.StartsWith("X-Test-", StringComparison.Ordinal));
+        Assert.False(result.Succeeded);
+        Assert.True(result.None);
+        Assert.Null(result.Principal);
+    }
 }

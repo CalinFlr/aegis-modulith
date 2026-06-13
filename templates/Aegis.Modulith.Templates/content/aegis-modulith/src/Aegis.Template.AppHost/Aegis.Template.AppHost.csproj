@@ -8,6 +8,7 @@
 
   <ItemGroup Condition="'$(AegisProfile)' != 'core'">
     <PackageReference Include="Aspire.Hosting" />
+    <PackageReference Include="MessagePack" PrivateAssets="all" />
     <ProjectReference Include="..\Aegis.Template.Api\Aegis.Template.Api.csproj" />
   </ItemGroup>
 </Project>

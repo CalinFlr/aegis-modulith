@@ -15,7 +15,30 @@ namespace Aegis.Template.PerformanceSmokeTests.Infrastructure;
 
 internal sealed class PerformanceSmokeWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private const string PostgresConnectionStringEnvironmentKey = "ConnectionStrings__Postgres";
+    private const string DefaultPostgresConnectionString =
+        "Host=localhost;Port=5432;Database=aegis_template_performance_smoke;Username=postgres;Password=postgres";
+
     private readonly string databaseName = $"Aegis.Template-performance-smoke-{Guid.NewGuid():N}";
+    private readonly string? previousConnectionString;
+
+    private PerformanceSmokeWebApplicationFactory(string? previousConnectionString)
+    {
+        this.previousConnectionString = previousConnectionString;
+    }
+
+    public static PerformanceSmokeWebApplicationFactory Create()
+    {
+        var previousConnectionString = Environment.GetEnvironmentVariable(PostgresConnectionStringEnvironmentKey);
+        Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, DefaultPostgresConnectionString);
+        return new PerformanceSmokeWebApplicationFactory(previousConnectionString);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        Environment.SetEnvironmentVariable(PostgresConnectionStringEnvironmentKey, previousConnectionString);
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

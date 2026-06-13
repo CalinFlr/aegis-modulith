@@ -18,6 +18,21 @@ public sealed class PermissionAuthorizationTests
     }
 
     [Fact]
+    public async Task Request_with_required_space_delimited_scope_can_access_protected_endpoint()
+    {
+        await using var factory = AegisWebApplicationFactory.WithFakeAuthentication();
+        using var client = factory.CreateAuthenticatedClient(
+            TestUsers.WithoutPermissions with
+            {
+                Scopes = ["work-items:read", "operations:read tasks:read"]
+            });
+
+        var response = await client.GetAsync("/operations/outbox");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Request_without_required_permission_is_forbidden()
     {
         await using var factory = AegisWebApplicationFactory.WithFakeAuthentication();

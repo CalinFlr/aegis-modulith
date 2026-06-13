@@ -144,4 +144,20 @@ public sealed class ProfileOptionWiringTests
             Assert.DoesNotContain("super-secret", content, StringComparison.OrdinalIgnoreCase);
         }
     }
+
+    [Fact]
+    public void Jwt_options_require_sufficient_signing_key_length()
+    {
+        if (ArchitectureTestContext.GetOption("AegisProfile") == "core")
+        {
+            return;
+        }
+
+        var jwtOptions = Path.Combine(ArchitectureTestContext.ApiProjectRoot, "Pro", "Auth", "AegisJwtOptions.cs");
+        var content = File.ReadAllText(jwtOptions);
+
+        Assert.Contains("MinimumSigningKeyBytes = 32", content, StringComparison.Ordinal);
+        Assert.Contains("Encoding.UTF8.GetByteCount", content, StringComparison.Ordinal);
+        Assert.Contains("HasSufficientSigningKey", content, StringComparison.Ordinal);
+    }
 }

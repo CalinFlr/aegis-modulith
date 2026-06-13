@@ -3,20 +3,31 @@ name: openapi-contract-review
 description: Use when public API endpoints or contracts change.
 ---
 
-# OpenAPI Contract Review
+# openapi-contract-review
 
 ## Goal
 
-Review public endpoint and DTO changes before merge.
+Use when public API endpoints or contracts change.
+
+## Required context
+
+Read `AGENTS.md` first. Then read the relevant file under `.ai/workflows` and `.ai/policies`.
 
 ## Procedure
 
-- Check request and response DTOs.
-- Avoid exposing EF entities.
-- Document breaking changes.
+- Check ProblemDetails.
+- Check response DTOs.
+- Check pagination for collections.
+- Update docs.
 
 ## Validation
 
+Run the smallest relevant checks, and before completion run:
+
 ```bash
-dotnet test -c Release
+npm run check
 ```
+
+## Final response
+
+Report files changed, validation commands, risks, and remaining limitations.
